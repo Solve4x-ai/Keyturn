@@ -1,0 +1,29 @@
+{
+  "// NOTE": "Example local MCP client configuration. Credentials remain in ignored profile files. Replace the paths with your checkout location.",
+  "mcpServers": {
+    "ninjaone-reporting": {
+      "command": "C:\\Program Files\\nodejs\\node.exe",
+      "args": [
+        "--require",
+        "dotenv/config",
+        "C:\\Mission-Control\\dist\\index.js"
+      ],
+      "cwd": "C:\\Mission-Control",
+      "env": {
+        "DOTENV_CONFIG_PATH": "C:\\Mission-Control\\config\\reporting.env"
+      }
+    },
+    "ninjaone-command": {
+      "command": "C:\\Program Files\\nodejs\\node.exe",
+      "args": [
+        "--require",
+        "dotenv/config",
+        "C:\\Mission-Control\\dist\\index.js"
+      ],
+      "cwd": "C:\\Mission-Control",
+      "env": {
+        "DOTENV_CONFIG_PATH": "C:\\Mission-Control\\config\\command.env"
+      }
+    }
+  }
+}

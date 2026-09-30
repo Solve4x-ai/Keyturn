@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment
+.env
+.env.*
+*.env
+!*.env.example
+
+# Local NinjaOne OAuth tokens (normally stored outside this repository)
+.ninjaone-mcp/
+tokens.json
+
+# Local SQLite databases — never commit live data
+*.db
+*.db-shm
+*.db-wal
+
+# Local configuration and production audit exports. Commit only sanitized examples.
+config/**
+!config/*.example
+!config/*.example.*
+exports/
+
+# OS / editor artifacts
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+*.tsbuildinfo
+
+# Generated MCP bundles are not source artifacts.
+*.mcpb
+
+# Claude Code local workspace settings
+.claude/
+
+# Devin CLI local MCP config — machine-local paths and personal keys
+.devin/mcp_config.local.json
+*.local.json
+.tmp/
