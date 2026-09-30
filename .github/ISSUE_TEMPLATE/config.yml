@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Report a security vulnerability
-    url: https://github.com/Solve4x-ai/Mission-Control/security/advisories/new
+    url: https://github.com/Solve4x-ai/Keyturn/security/advisories/new
     about: Please report security issues privately.
+  - name: Email the maintainers
+    url: mailto:support@solve4x.ai
+    about: Questions about using Keyturn, or anything that doesn't fit an issue.

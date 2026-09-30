@@ -182,7 +182,7 @@ export function requireOrg(el, { title, sub, icon: ic = 'building' }) {
           <div class="ot-stats"><span><b>${h.on}</b>/${o.devices} online</span><span><b>${o.servers}</b> servers</span><span class="${o.risks.high || o.risks.critical ? 'warn' : ''}"><b>${o.risks.open}</b> risks</span></div>
           <span class="oc-go">${icon('arrow-ur')}</span>
         </button>`;
-      }).join('') || '<div class="empty">No organizations in the local inventory — sync from Mission Control.</div>'}</div>
+      }).join('') || '<div class="empty">No organizations in the local inventory — sync from Overview.</div>'}</div>
     </div>`;
   el.querySelectorAll('[data-pick-org]').forEach((b) => b.addEventListener('click', () => setScope(Number(b.dataset.pickOrg))));
   return null;

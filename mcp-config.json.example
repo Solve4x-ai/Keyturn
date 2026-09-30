@@ -6,11 +6,11 @@
       "args": [
         "--require",
         "dotenv/config",
-        "C:\\Mission-Control\\dist\\index.js"
+        "C:\\Keyturn\\dist\\index.js"
       ],
-      "cwd": "C:\\Mission-Control",
+      "cwd": "C:\\Keyturn",
       "env": {
-        "DOTENV_CONFIG_PATH": "C:\\Mission-Control\\config\\reporting.env"
+        "DOTENV_CONFIG_PATH": "C:\\Keyturn\\config\\reporting.env"
       }
     },
     "ninjaone-command": {
@@ -18,11 +18,11 @@
       "args": [
         "--require",
         "dotenv/config",
-        "C:\\Mission-Control\\dist\\index.js"
+        "C:\\Keyturn\\dist\\index.js"
       ],
-      "cwd": "C:\\Mission-Control",
+      "cwd": "C:\\Keyturn",
       "env": {
-        "DOTENV_CONFIG_PATH": "C:\\Mission-Control\\config\\command.env"
+        "DOTENV_CONFIG_PATH": "C:\\Keyturn\\config\\command.env"
       }
     }
   }

@@ -1,7 +1,7 @@
 # Harness guide — connecting an AI client
 
 How to point an MCP-capable assistant (Claude Desktop, Claude Code, Cursor,
-Windsurf, Codex, Devin, or a custom harness) at Mission Control, and the
+Windsurf, Codex, Devin, or a custom harness) at Keyturn, and the
 contract it must honor.
 
 ## What it is connecting to
@@ -19,28 +19,28 @@ never credentials.
 
 ## Client configuration
 
-**Easiest:** open **Settings → MCP clients** in the Command Center. It detects
+**Easiest:** open **Settings → MCP clients** in the dashboard. It detects
 installed clients (Claude Desktop, Cursor, Windsurf, Codex, Devin), shows the
 exact entries for your install path, and can merge them into the client's
 config for you (with a backup).
 
 **By hand:** register both servers in the client's MCP config. Replace
-`C:\\Mission-Control` with your checkout path:
+`C:\\Keyturn` with your checkout path:
 
 ```json
 {
   "mcpServers": {
     "ninjaone-reporting": {
       "command": "node",
-      "args": ["--require", "C:\\Mission-Control\\node_modules\\dotenv\\config.js",
-               "C:\\Mission-Control\\dist\\index.js"],
-      "env": { "DOTENV_CONFIG_PATH": "C:\\Mission-Control\\config\\reporting.env" }
+      "args": ["--require", "C:\\Keyturn\\node_modules\\dotenv\\config.js",
+               "C:\\Keyturn\\dist\\index.js"],
+      "env": { "DOTENV_CONFIG_PATH": "C:\\Keyturn\\config\\reporting.env" }
     },
     "ninjaone-command": {
       "command": "node",
-      "args": ["--require", "C:\\Mission-Control\\node_modules\\dotenv\\config.js",
-               "C:\\Mission-Control\\dist\\index.js"],
-      "env": { "DOTENV_CONFIG_PATH": "C:\\Mission-Control\\config\\command.env" }
+      "args": ["--require", "C:\\Keyturn\\node_modules\\dotenv\\config.js",
+               "C:\\Keyturn\\dist\\index.js"],
+      "env": { "DOTENV_CONFIG_PATH": "C:\\Keyturn\\config\\command.env" }
     }
   }
 }

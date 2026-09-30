@@ -232,7 +232,7 @@ export class ApproverService {
       publicKey: {
         challenge,
         rp: { id: this.rp.id, name: this.rp.name },
-        user: { id: b64u(sha256(`approver:${this.store.connId ?? 'local'}`)), name: 'command-center-approver', displayName: 'Command Center approver' },
+        user: { id: b64u(sha256(`approver:${this.store.connId ?? 'local'}`)), name: 'keyturn-approver', displayName: 'Keyturn approver' },
         pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -8 }, { type: 'public-key', alg: -257 }],
         timeout: CHALLENGE_TTL_MS,
         attestation: 'none',

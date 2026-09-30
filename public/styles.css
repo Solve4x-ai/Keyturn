@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Command Center components — consume ONLY semantic tokens from theme.css.
+   Keyturn components — consume ONLY semantic tokens from theme.css.
    Never reference --p-* primitives here; status comes from --ok/--warn/--bad,
    surfaces from --canvas/--surface*, text from --text/--text-muted.
    ========================================================================== */

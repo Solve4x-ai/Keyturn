@@ -134,6 +134,8 @@ async function main() {
       cache: payload.cache ?? null,
       syncState: payload.syncState ?? null,
       uptimeSec: Math.round(process.uptime()),
+      // Set by `npm run demo` (fictional data, sandboxed) so the UI can say so.
+      demo: process.env.NINJA_DEMO === '1',
     };
   });
 
@@ -253,7 +255,7 @@ async function main() {
   // with NINJA_WEBAUTHN_RP_ID / NINJA_WEBAUTHN_ORIGINS (comma-separated).
   const rpId = (process.env.NINJA_WEBAUTHN_RP_ID || 'localhost').trim();
   const rpOrigins = (process.env.NINJA_WEBAUTHN_ORIGINS || `http://localhost:${PORT}`).split(',').map((s) => s.trim()).filter(Boolean);
-  const approver = () => new ApproverService(requireStore(mcp), { id: rpId, name: 'Command Center', origins: rpOrigins });
+  const approver = () => new ApproverService(requireStore(mcp), { id: rpId, name: 'Keyturn', origins: rpOrigins });
   const isCommand = () => mcp.getSecurity().profile === 'command';
   const waFail = (reply: any, error: any) =>
     reply.code(error instanceof WebAuthnError || error?.code ? 400 : 500).send({ error: error?.message ?? 'passkey ceremony failed', code: error?.code });
@@ -463,7 +465,7 @@ async function main() {
 
   app.get('/api/v1/plans', async () => ({ plans: ops().listPlans() }));
 
-  // Mission Control — one bounded read-only aggregate (local store only).
+  // Overview HUD — one bounded read-only aggregate (local store only).
   app.get<{ Querystring: { orgId?: string } }>('/api/v1/hud', async (request) => {
     let pendingPlans: Array<Record<string, unknown>> = [];
     try { pendingPlans = ops().listPlans().filter((p) => !p.approval_id); } catch { /* reporting stores may lack plan context */ }

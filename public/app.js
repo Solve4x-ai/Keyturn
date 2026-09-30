@@ -1,4 +1,4 @@
-// NinjaOne Command Center — vanilla ES modules, no build step (M4.6).
+// Keyturn — vanilla ES modules, no build step (M4.6).
 // Feature modules live in /assets/js/: core (api/state/utils), components
 // (shared render vocabulary), device-drawer, device-page, gallery.
 // Data routes require a bearer token: pass ?token=… once (saved to
@@ -35,7 +35,7 @@ async function loadMeta() {
     appBadge.textContent = 'app connected';
     appBadge.className = 'badge badge-ok';
     appBadge.hidden = true;
-    $('#connection-label').textContent = h.cache?.tenant || (h.connectionId ? `conn ${h.connectionId.slice(0, 8)}` : 'no connection');
+    $('#connection-label').textContent = h.demo ? 'demo data' : h.cache?.tenant || (h.connectionId ? `conn ${h.connectionId.slice(0, 8)}` : 'no connection');
     const badge = $('#profile-badge');
     badge.textContent = h.principal?.profile || 'unknown';
     badge.className = 'badge ' + (h.principal?.profile === 'reporting' ? 'badge-ok' : 'badge-warn');
@@ -78,14 +78,14 @@ $('#sidebar-toggle').addEventListener('click', () => {
   syncSidebarToggle();
 });
 
-// Attention popover — the same ranked queue Mission Control shows, from the
+// Attention popover — the same ranked queue the Overview shows, from the
 // shell's HUD poll. Every entry links to a real page; nothing is fabricated.
 let lastHud = null;
 function renderAttention() {
   const pop = $('#attention-pop');
   const items = lastHud?.attention ?? [];
   pop.innerHTML = `
-    <div class="ap-head"><span class="ap-title">Needs attention</span><a class="hc-link" href="#/hud">Mission Control ${icon('arrow-ur')}</a></div>
+    <div class="ap-head"><span class="ap-title">Needs attention</span><a class="hc-link" href="#/hud">Overview ${icon('arrow-ur')}</a></div>
     ${items.length ? `<div class="ap-list">${items.slice(0, 10).map(attentionItem).join('')}</div>`
       : `<div class="ap-empty">${lastHud ? 'All clear — nothing needs you right now.' : 'Loading…'}</div>`}`;
 }
@@ -320,7 +320,7 @@ const views = {
           <td class="sub">${esc(r.org_name ?? r.org_id ?? '—')}</td>
           <td class="sub ${ageClass(r.last_contact)}" title="${esc(fmtTs(r.last_contact))}">${ago(r.last_contact)}</td>
           <td class="sub">${esc(kindLabel(r.node_class))}</td>
-        </tr>`).join('') || `<tr><td colspan="6" class="empty">${state.q || state.kind || status ? 'No devices match these filters.' : 'No devices — sync the inventory from Mission Control.'}</td></tr>`}
+        </tr>`).join('') || `<tr><td colspan="6" class="empty">${state.q || state.kind || status ? 'No devices match these filters.' : 'No devices — sync the inventory from Overview.'}</td></tr>`}
         </tbody></table>
       </div>
       <div class="pager">

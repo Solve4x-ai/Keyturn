@@ -1,13 +1,14 @@
 # Contributing
 
 Thanks for helping! Bug reports, docs fixes, new runbooks, and new RMM
-connectors are all welcome.
+connectors are all welcome. Please follow the [Code of Conduct](CODE_OF_CONDUCT.md);
+questions go to [support@solve4x.ai](mailto:support@solve4x.ai).
 
 ## Get running
 
 ```powershell
-git clone https://github.com/Solve4x-ai/Mission-Control.git
-cd Mission-Control
+git clone https://github.com/Solve4x-ai/Keyturn.git
+cd Keyturn
 npm install
 npm run demo        # full UI on fictional data — no RMM account needed
 ```

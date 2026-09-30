@@ -1,6 +1,6 @@
 # Security model
 
-Mission Control lets an AI assistant investigate and propose work on real
+Keyturn lets an AI assistant investigate and propose work on real
 endpoints. The design goal is simple to state: **an AI holding every token on
 the machine still cannot make anything happen on an endpoint without a human.**
 This page explains how.
@@ -26,7 +26,7 @@ This page explains how.
 
 - MCP runs over **stdio only**. Any `MCP_MODE` other than `stdio` fails at
   startup; there is no HTTP/SSE MCP endpoint.
-- The Command Center UI binds to `127.0.0.1`, requires a per-install bearer
+- The Keyturn dashboard binds to `127.0.0.1`, requires a per-install bearer
   token (`~/.ninjaone-mcp/serve.token`), and serves `cache-control: no-store`.
 - No hosted service, no telemetry, no credentials in MCP client configs — those
   only carry the *path* to an ignored env file.

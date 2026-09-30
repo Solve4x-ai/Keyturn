@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Mission Control are documented here. The format follows
+All notable changes to Keyturn are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
@@ -8,14 +8,14 @@ All notable changes to Mission Control are documented here. The format follows
 
 ## [1.5.0] — 2026-09-30 — first public release
 
-Mission Control began as a fork of
+Keyturn began as a fork of
 [NinjaOneMCP](https://github.com/Lungshot/NinjaOneMCP) and grew into a local
 command center with a human-approval pipeline. This is the first public
 release.
 
 ### Added
 
-- **Command Center UI** — Mission Control HUD, Organizations, Devices,
+- **Dashboard** — Overview, Organizations, Devices,
   Infrastructure (Active Directory, DNS, DHCP, Group Policy, evidence
   coverage), Review Center, Approvals, Operations, Runbooks, Analytics,
   Reports, Security, and Settings. Zero-framework ES modules; dark, light, and
@@ -41,5 +41,5 @@ release.
   no RMM account.
 - ~80 MCP tools over stdio; see [TOOLS.md](TOOLS.md).
 
-[Unreleased]: https://github.com/Solve4x-ai/Mission-Control/compare/v1.5.0...HEAD
-[1.5.0]: https://github.com/Solve4x-ai/Mission-Control/releases/tag/v1.5.0
+[Unreleased]: https://github.com/Solve4x-ai/Keyturn/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/Solve4x-ai/Keyturn/releases/tag/v1.5.0

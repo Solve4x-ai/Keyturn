@@ -45,7 +45,7 @@ export async function organizationsView(el) {
             <div class="oc-foot">${o.risks.high || o.risks.critical ? `<span class="badge badge-warn">${o.risks.critical ? `${o.risks.critical} critical · ` : ''}${o.risks.high} high</span>` : '<span class="badge badge-ok">no high risks</span>'}
               ${o.orgId === sc ? '<span class="badge badge-accent">current scope</span>' : ''}<span class="oc-go">Open ${icon('arrow-ur')}</span></div>
           </a>`;
-        }).join('') || '<div class="empty">No organizations yet — sync the inventory from Mission Control.</div>'}
+        }).join('') || '<div class="empty">No organizations yet — sync the inventory from Overview.</div>'}
       </div>
     </div>`;
   countUp(el);

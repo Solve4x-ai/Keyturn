@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Mission Control demo — explore the full UI with a fictional MSP and no RMM
+// Keyturn demo — explore the full UI with a fictional MSP and no RMM
 // account. Seeds a throwaway SQLite database under .demo/ (git-ignored) and
 // starts the local server in read-only reporting mode with every upstream
 // worker off: nothing here can reach NinjaOne or touch a real endpoint.
@@ -30,6 +30,7 @@ if (!existsSync(join(ROOT, 'dist', 'serve.js'))) {
 const { openDatabase } = await import('../dist/storage.js');
 const { EntityStore } = await import('../dist/entity-store.js');
 const { ReviewService } = await import('../dist/review.js');
+const { OperationService } = await import('../dist/operations.js');
 
 // Deterministic pseudo-random so screenshots are reproducible.
 let s = 0x5eed;
@@ -177,29 +178,37 @@ function seed() {
   const insAppr = db.prepare('INSERT INTO operation_approvals (id, plan_id, plan_hash, approved_by, method, created_at, expires_at) VALUES (?,?,?,?,?,?,?)');
   const insOp = db.prepare('INSERT INTO operations (id, connection_id, plan_id, approval_id, dedupe_key, operation, target_type, target_id, status, result_json, runbook_id, runbook_version, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
   const insEvt = db.prepare('INSERT INTO operation_events (operation_id, kind, at, data_json) VALUES (?,?,?,?)');
-  const runbooks = ['diag/ad-health', 'diag/dns-inventory', 'diag/dhcp-inventory', 'diag/gpo-inventory', 'diag/disk-health', 'diag/pending-reboot'];
+  // Plans go through the real OperationService so each one carries the exact
+  // runbook script and hash the UI shows on the plan page.
+  const planner = new OperationService(store, null, { profile: 'command', principal: { profile: 'command' } });
+  const plan = (runbookId, targetId, createdAt) => {
+    const p = planner.createPlan({ operation: 'run_device_powershell', targetType: 'device', targetId, args: { runbookId } });
+    db.prepare("UPDATE operation_plans SET created_at = ?, expires_at = ?, principal = 'mcp:command' WHERE id = ?").run(createdAt, createdAt + 15 * MIN, p.id);
+    return p;
+  };
+  db.prepare('DELETE FROM operation_journal').run(); // planning noise, not user activity
+  const runbooks = ['diag/ad-health', 'diag/dns-server', 'diag/dhcp-scopes', 'diag/gpo-inventory', 'diag/service-state', 'diag/windows-update-triage', 'diag/dhcp-clients'];
   const servers = devices.filter((d) => d.nodeClass === 'WINDOWS_SERVER' && !d.offline);
-  for (let i = 0; i < 110; i++) {
+  // Generated first, inserted oldest-first: lists order by insertion, like real use.
+  const specs = Array.from({ length: 110 }, () => {
     const day = Math.floor(Math.pow(rand(), 1.3) * 30);
-    const at = NOW - day * DAY - Math.floor(rand() * 8) * HOUR - HOUR;
-    const target = pick(servers);
-    const rb = pick(runbooks);
-    const status = i < 2 ? 'accepted' : rand() < 0.1 ? 'failed' : 'verified';
+    return { at: NOW - day * DAY - Math.floor(rand() * 8) * HOUR - HOUR, target: pick(servers), rb: pick(runbooks),
+      status: rand() < 0.1 ? 'failed' : 'verified' }; // terminal only: in-flight ops poll the RMM
+  }).sort((a, b) => a.at - b.at);
+  for (const [i, { at, target, rb, status }] of specs.entries()) {
     const id = `demo-op-${i}`;
-    const hash = randomBytes(16).toString('hex');
-    insPlan.run(`demo-plan-${i}`, null, 'run_device_powershell', 'device', target.id, JSON.stringify({ runbookId: rb }), hash, 'mcp:command', at - 4 * MIN, at + 11 * MIN);
-    insAppr.run(`demo-appr-${i}`, `demo-plan-${i}`, hash, 'passkey:Operator YubiKey', 'webauthn', at - 2 * MIN, at + 13 * MIN);
+    const p = plan(rb, target.id, at - 4 * MIN);
+    insAppr.run(`demo-appr-${i}`, p.id, p.planHash, 'passkey:Operator YubiKey', 'webauthn', at - 2 * MIN, at + 13 * MIN);
     const dur = 4000 + Math.floor(rand() * 40000);
-    insOp.run(id, null, `demo-plan-${i}`, `demo-appr-${i}`, `demo-d-${i}`, 'run_device_powershell', 'device', target.id, status,
-      status === 'accepted' ? null : JSON.stringify({ durationMs: dur, exitCode: status === 'failed' ? 1 : 0 }), rb, 1, at, at + dur);
+    insOp.run(id, null, p.id, `demo-appr-${i}`, `demo-d-${i}`, 'run_device_powershell', 'device', target.id, status,
+      status === 'accepted' ? null : JSON.stringify({ durationMs: dur, exitCode: status === 'failed' ? 1 : 0 }), rb, p.runbook?.version ?? 1, at, at + dur);
     insEvt.run(id, 'accepted', at, '{}');
     if (status !== 'accepted') insEvt.run(id, status, at + dur, '{}');
   }
 
   // Two plans waiting for a human — the approval queue.
-  for (const [i, rb, target] of [[900, 'maint/clear-print-spooler', devByName(2, 'NW-PRINT01')], [901, 'diag/disk-health', devByName(1, 'FS01')]]) {
-    insPlan.run(`demo-plan-${i}`, null, 'run_device_powershell', 'device', target, JSON.stringify({ runbookId: rb }), randomBytes(16).toString('hex'), 'mcp:command', NOW - 6 * MIN, NOW + 9 * MIN);
-  }
+  plan('diag/print-spooler', devByName(2, 'NW-PRINT01'), NOW - 6 * MIN);
+  plan('diag/service-state', devByName(1, 'FS01'), NOW - 4 * MIN);
 
   // ── Rule findings raised on the collected evidence ─────────────────
   const insAnn = db.prepare("INSERT INTO infra_annotations (id, connection_id, org_id, entity_id, operation_id, kind, rule_id, rule_version, title, detail, evidence_json, status, author, created_at) VALUES (?,?,?,?,?,'finding',?,?,?,?,?,'open','rule',?)");
@@ -275,7 +284,7 @@ child.stderr.on('data', (d) => {
 const url = `http://localhost:${PORT}/?token=${token}`;
 if (process.env.DEMO_TOKEN_FILE) (await import('node:fs')).writeFileSync(process.env.DEMO_TOKEN_FILE, token);
 setTimeout(() => {
-  console.log(`\n  Mission Control demo → ${url}\n  (fictional data · read-only · Ctrl+C to stop)\n`);
+  console.log(`\n  Keyturn demo → ${url}\n  (fictional data · read-only · Ctrl+C to stop)\n`);
   if (!args.has('--no-open')) {
     const opener = process.platform === 'win32' ? ['cmd', ['/c', 'start', '', url]] : process.platform === 'darwin' ? ['open', [url]] : ['xdg-open', [url]];
     spawn(opener[0], opener[1], { stdio: 'ignore', detached: true }).on('error', () => {}).unref();

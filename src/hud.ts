@@ -1,5 +1,5 @@
 /**
- * Mission Control HUD — one bounded, read-only aggregate over the local store.
+ * Overview HUD — one bounded, read-only aggregate over the local store.
  *
  * Everything here is derived from retained local data; nothing calls
  * NinjaOne and nothing can dispatch. Honesty rules carried from the design

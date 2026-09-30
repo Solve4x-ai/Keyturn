@@ -417,7 +417,7 @@ export class SettingsService {
         }
         this.reconnect.state = 'exchanging';
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end('<h1>Authorization complete</h1><p>You can close this tab — Mission Control is finishing up.</p>');
+        res.end('<h1>Authorization complete</h1><p>You can close this tab — Keyturn is finishing up.</p>');
         void this.exchangeReconnectCode(code, baseUrl, clientId, redirectValue, verifier);
       });
       pending.server = server;
@@ -544,7 +544,7 @@ export class SettingsService {
     });
   }
 
-  /** The server entries Mission Control registers in a client config. */
+  /** The server entries Keyturn registers in a client config. */
   private serverEntries(): Record<string, Record<string, unknown>> {
     // Absolute dotenv path: some clients (Claude Desktop) ignore `cwd`, and a
     // bare `dotenv/config` would then fail to resolve.
@@ -559,7 +559,7 @@ export class SettingsService {
     };
   }
 
-  /** The config block Mission Control wants in a client, as text for copy or merge. */
+  /** The config block Keyturn wants in a client, as text for copy or merge. */
   configBlock(format: 'json' | 'toml'): { block: string } {
     if (format === 'json') {
       return { block: `"mcpServers": ${JSON.stringify(this.serverEntries(), null, 2)}` };
@@ -583,7 +583,7 @@ export class SettingsService {
     return { block };
   }
 
-  /** Merge Mission Control's server entries into a client's config file (backup first). */
+  /** Merge Keyturn's server entries into a client's config file (backup first). */
   mergeClientConfig(clientId: string): { path: string; backup: string | null; merged: string[] } {
     const client = clientPaths(this.home, this.appData, this.platform).find((c) => c.id === clientId);
     if (!client) throw new SettingsError('unknown_client', 'unknown MCP client');
@@ -620,7 +620,7 @@ export class SettingsService {
       return { path: target, backup, merged: ['ninjaone-command', 'ninjaone-reporting'] };
     }
 
-    // TOML (Codex): replace only the tables Mission Control owns, in place;
+    // TOML (Codex): replace only the tables Keyturn owns, in place;
     // operator-added sub-tables (per-tool approval_mode…) are kept.
     const text = existsSync(target) ? readFileSync(target, 'utf8') : '';
     this.atomicWrite(target, replaceTomlTables(text, OWNED_TOML_TABLES, `${TOML_MARKER}\n${this.configBlock('toml').block}`));
@@ -673,7 +673,9 @@ function envValue(key: string, value: string): string {
   throw new SettingsError('bad_value', `${key} contains characters that cannot be quoted safely — edit the file directly`);
 }
 
-const TOML_MARKER = '# Mission Control — NinjaOne connector';
+const TOML_MARKER = '# Keyturn — NinjaOne connector';
+/** Markers written by earlier versions — stripped on merge so they never pile up. */
+const LEGACY_TOML_MARKERS = new Set(['# Mission Control — NinjaOne connector']);
 const OWNED_TOML_TABLES = new Set([
   'mcp_servers.ninjaone-command',
   'mcp_servers.ninjaone-command.env',
@@ -702,7 +704,7 @@ export function replaceTomlTables(text: string, owned: Set<string>, block: strin
       if (depth === 0 && /^\s*\[\[/.test(line)) skipping = false;
       depth = Math.max(0, depth + bracketDelta(line));
     }
-    if (skipping || line.trim() === TOML_MARKER) continue;
+    if (skipping || line.trim() === TOML_MARKER || LEGACY_TOML_MARKERS.has(line.trim())) continue;
     out.push(line);
   }
   while (out.length && out.at(-1)!.trim() === '') out.pop();

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Mission Control HUD + shared chart styles. Semantic tokens only.
+   Overview HUD + shared chart styles. Semantic tokens only.
    Layout: 12-column bento grid driven by a container query so the HUD
    reflows by its own width, not the viewport (sidebar collapse aware).
    ========================================================================== */

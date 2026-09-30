@@ -1,12 +1,14 @@
 # Security policy
 
-Mission Control sits between an AI assistant and real endpoints, so security
+Keyturn sits between an AI assistant and real endpoints, so security
 reports get priority.
 
 ## Reporting a vulnerability
 
-**Please don't open a public issue.** Use GitHub's private reporting instead:
-**[Report a vulnerability](https://github.com/Solve4x-ai/Mission-Control/security/advisories/new)**.
+**Please don't open a public issue.** Use GitHub's private reporting:
+**[Report a vulnerability](https://github.com/Solve4x-ai/Keyturn/security/advisories/new)**,
+or email **[support@solve4x.ai](mailto:support@solve4x.ai)** with "Security" in
+the subject.
 
 Include what you can: affected version or commit, steps to reproduce, and the
 impact you see. You'll get an acknowledgement within a few business days and a

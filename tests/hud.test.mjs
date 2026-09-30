@@ -1,4 +1,4 @@
-// Mission Control + Analytics aggregates — honesty semantics.
+// Overview HUD + Analytics aggregates — honesty semantics.
 // Roles come only from infra evidence; freshness is always reported; an
 // offline server and pending approvals rank at the top of attention; org
 // scope filters every section; empty windows stay empty (no invented data).

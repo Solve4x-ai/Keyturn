@@ -1,4 +1,4 @@
-// Mission Control — the live HUD landing page.
+// Overview — the live HUD landing page.
 // Route: #/hud. Everything shown comes from GET /api/v1/hud (local store,
 // read-only). Status is always "as of the last device sync" — freshness is
 // rendered next to the fleet numbers, never hidden behind them.
@@ -75,7 +75,7 @@ export async function hudView(el) {
   el.innerHTML = `
     <div class="hud${firstPaint ? ' rise' : ''}" data-view-root="hud">
       ${pageHeader({
-        icon: 'hud', title: 'Mission Control',
+        icon: 'hud', title: 'Overview',
         subHtml: `Live fleet posture, infrastructure, and AI findings for <strong>${esc(scopeName)}</strong>. Read-only — nothing on this page executes.`,
         actions: sc != null
           ? `<a class="btn secondary" href="#/org/${sc}">${icon('building')} Open organization</a><button class="btn ghost" id="hud-all">${icon('layers')} Show all orgs</button>`

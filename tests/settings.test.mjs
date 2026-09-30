@@ -247,10 +247,22 @@ test('Codex merge: arrays and operator sub-tables survive; repeat merges are ide
   for (const h of ['mcp_servers.other', 'desktop', 'mcp_servers.ninjaone-command.tools.run_device_powershell', 'mcp_servers.ninjaone-reporting.tools.get_auth_profile', 'mcp_servers.ninjaone-command', 'mcp_servers.ninjaone-command.env']) {
     assert.ok(headers.has(h), `missing [${h}]`);
   }
-  assert.equal(twice.split('# Mission Control — NinjaOne connector').length, 2, 'marker appears once');
+  assert.equal(twice.split('# Keyturn — NinjaOne connector').length, 2, 'marker appears once');
   assert.match(twice, /approval_mode = "approve"/);
   assert.ok(twice.includes(join(root, 'node_modules', 'dotenv', 'config.js')), 'absolute dotenv path');
   assert.equal(twice.includes("C:\\x\\config"), false, 'stale entries replaced');
+});
+
+test('Codex merge: a marker from the old product name is replaced, not duplicated', async () => {
+  const { home, svc } = await fixture();
+  const target = join(home, '.codex', 'config.toml');
+  await mkdir(join(home, '.codex'), { recursive: true });
+  await writeFile(target, `# Mission Control — NinjaOne connector\n${CODEX_FIXTURE}`);
+  svc.mergeClientConfig('codex');
+  const text = await readFile(target, 'utf8');
+  assert.equal(text.includes('# Mission Control — NinjaOne connector'), false, 'legacy marker removed');
+  assert.equal(text.split('# Keyturn — NinjaOne connector').length, 2, 'new marker appears once');
+  assertTomlShape(text);
 });
 
 test('replaceTomlTables handles quoted keys, CRLF, and empty files', () => {

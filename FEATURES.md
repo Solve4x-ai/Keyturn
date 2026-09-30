@@ -1,6 +1,6 @@
 # Features
 
-This document tracks the implemented capabilities and security boundaries of Mission Control — an RMM-agnostic command center (first connector: NinjaOne).
+This document tracks the implemented capabilities and security boundaries of Keyturn — an RMM-agnostic command center (first connector: NinjaOne).
 
 ## Current platform
 
@@ -10,7 +10,7 @@ This document tracks the implemented capabilities and security boundaries of Mis
 - TypeScript runtime with mocked regression tests
 - Separate reporting and command processes
 - Per-tenant SQLite workspace at `%USERPROFILE%\.ninjaone-mcp\data\<tenant>.db` (WAL, shared by both profiles; entity metadata + evidence + review records only — no credentials)
-- **Local browser UI ("Command Center")** via a Fastify `serve` process bound to `127.0.0.1` with bearer-token auth (`npm run serve`; run one listener per profile on separate ports). This is the human approval, monitoring, infrastructure, review, and reporting surface — it is not an MCP transport. Open it at `http://localhost:<port>` (required for passkey approvals).
+- **Local browser dashboard** via a Fastify `serve` process bound to `127.0.0.1` with bearer-token auth (`npm run serve`; run one listener per profile on separate ports). This is the human approval, monitoring, infrastructure, review, and reporting surface — it is not an MCP transport. Open it at `http://localhost:<port>` (required for passkey approvals).
 - **Optional live inventory sync** — `NINJA_SYNC_INTERVAL_MINUTES=<n>` makes the serve process refresh organizations, devices, policies, and locations from NinjaOne every *n* minutes. Plain NinjaOne API reads (≈4–5 calls per sync at ~100 devices); **no AI/LLM tokens**, nothing runs on endpoints.
 - **Demo mode** — `npm run demo` runs the full UI against a fictional MSP (three organizations, ~85 devices) with no RMM account, fully sandboxed and read-only.
 - No MCP HTTP/SSE transport, Docker service, or hosted gateway — local by design
@@ -137,13 +137,13 @@ Organization-scoped durable record of observations, risks, improvements, questio
 - UI `#/review/<org>`: Inbox / Questions / Risks / Improvements / Decisions tabs, expandable evidence, full-context text, answer/decision controls — no "Fix" button anywhere
 - 13 MCP tools (5 reads both profiles, 8 writes gated by command profile + `reviewWritesEnabled`); REST routes back the UI
 
-## Command Center UI (v3)
+## Dashboard
 
 Vanilla ES modules, no framework, no build step, no runtime dependencies. Design system "Aurora": oklch color tokens, glass surfaces, dark / light / system themes × cyan / blue / violet / teal accents × compact / comfortable density, collapsible grouped sidebar, View Transitions between pages, container-query layouts.
 
-- **Mission Control** (`#/hud`, landing page) — fleet online ring with offline aging, server constellation with evidence-backed DC / DNS / DHCP roles, ranked attention queue (pending approvals, offline servers, failed operations, critical risks, stale sync), 14-day operations chart, AI findings by severity and category, merged activity stream, per-organization health, org scope switcher, and a network-edge card reserved for the SNMPv3 agent. Every live-looking number shows "as of last sync". Backed by `GET /api/v1/hud` (one local aggregate, ~15 ms).
+- **Overview** (`#/hud`, landing page) — fleet online ring with offline aging, server constellation with evidence-backed DC / DNS / DHCP roles, ranked attention queue (pending approvals, offline servers, failed operations, critical risks, stale sync), 14-day operations chart, AI findings by severity and category, merged activity stream, per-organization health, org scope switcher, and a network-edge card reserved for the SNMPv3 agent. Every live-looking number shows "as of last sync". Backed by `GET /api/v1/hud` (one local aggregate, ~15 ms).
 - **Analytics** (`#/analytics`) — 7-day to 1-year windows: operations throughput and outcome mix, per-runbook reliability with median time-to-receipt, p50/p95 receipt latency, most-worked devices, observed change volume, findings opened vs closed, check-in distribution, infrastructure knowledge, and tool usage. Backed by `GET /api/v1/analytics`.
-- **Organization scope switch** (top bar) — an "All orgs" segment plus a searchable organization picker showing each tenant's online ratio, servers, and open risks. The scope applies to every page: Mission Control, Analytics, Devices, and Organizations filter to it; Infrastructure, Review Center, and Reports follow it and show an organization chooser while "All" is selected. It persists across reloads, deep links (`?org=<id>`, `?org=all`, or an org in the path) override it, and in-page links keep it.
+- **Organization scope switch** (top bar) — an "All orgs" segment plus a searchable organization picker showing each tenant's online ratio, servers, and open risks. The scope applies to every page: Keyturn, Analytics, Devices, and Organizations filter to it; Infrastructure, Review Center, and Reports follow it and show an organization chooser while "All" is selected. It persists across reloads, deep links (`?org=<id>`, `?org=all`, or an org in the path) override it, and in-page links keep it.
 - **Organizations** (`#/organizations`) — tenant cards with online ring, servers, offline count, and risk posture.
 - **Organization page** (`#/org/<id>`) — a command page per tenant: online ring, six KPIs (endpoints, servers up, open risks, approvals, 30-day operation success, evidence completeness), needs-attention queue, an infrastructure snapshot (domain, DCs with FSMO, DNS/DHCP/GPO tiles, DHCP scope utilization), server constellation, AI findings, offline devices, and recent activity. Opening it scopes the whole app to that organization.
 - **Infrastructure, visual edition** — backed by `GET /api/v1/orgs/:id/infrastructure/topology` (one structured model built from the evidence store, ~30 ms):
@@ -158,7 +158,7 @@ Vanilla ES modules, no framework, no build step, no runtime dependencies. Design
 - **Derived fields are re-derived on read.** Raw collected values are immutable; interpretations (e.g. GPO enabled/disabled labels) are recomputed with the current decoder in every list, detail, history, as-of, and change-feed read, so a decoder fix corrects the UI, reports, and MCP clients without rewriting evidence. Findings raised by a superseded rule version are retracted by migration; human review records are never rewritten.
 - Inspector drawers sit above the top bar (close button always reachable) and close automatically on navigation.
 - **Command palette** (Ctrl+K or `/`) — jump to pages, devices, organizations, review findings, and runbooks; local data only, never executes.
-- **Attention bell** — the same ranked queue as Mission Control, from any page.
+- **Attention bell** — the same ranked queue as the Overview, from any page.
 - **Devices** — fleet stat cards, server / workstation and online / offline filters, status dots, check-in aging measured against the last sync.
 - **Approvals** — plan cards with live expiry countdowns; approval-mode banner.
 - **Plan review** — line-numbered exact script, parameters, frozen target sets, impact (classification, disruption, scope, side effects), device-session disclosure, provenance, and a passkey approve button.
@@ -238,7 +238,7 @@ The ordinary test suite uses mocks and does not modify the live NinjaOne tenant.
 
 ## Roadmap (planned, not yet built)
 
-- **Network edge agent** — an SNMPv3 collector deployed on each site network reporting switches, firewalls, access points, and printers back to the command center; a Network view and live device tiles on Mission Control (the HUD already reserves the slot and reports "not connected" honestly).
+- **Network edge agent** — an SNMPv3 collector deployed on each site network reporting switches, firewalls, access points, and printers back to the command center; a Network view and live device tiles on Keyturn (the HUD already reserves the slot and reports "not connected" honestly).
 - **Approved device actions as runbooks** — reboot, service restart, maintenance mode, and patch operations rebuilt as plan-backed runbooks so they return to use behind passkey approval.
 - **Review Center and Reports redesign** on the v3 system; scheduled management reports (e.g. "software cleaned up over the last 6 months") with Markdown / HTML / PDF export.
 - **Settings page** — appearance, default views, sync interval, session policy visibility, and about/build info.

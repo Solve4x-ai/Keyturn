@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Start the Command Center on the command profile and open it signed in.
+// Start the dashboard on the command profile and open it signed in.
 //
 //   npm run ui                      command profile on http://localhost:39300
 //   npm run ui -- --profile=reporting --port=39301   read-only instance
@@ -37,7 +37,7 @@ child.stderr.on('data', (d) => {
   const token = process.env.NINJA_SERVE_TOKEN || (existsSync(tokenFile) ? readFileSync(tokenFile, 'utf8').trim() : '');
   // localhost, not 127.0.0.1 — browsers only allow passkeys on a hostname.
   const url = `http://localhost:${port}/${token ? `?token=${token}` : ''}`;
-  console.log(`\n  Command Center (${profile}) → http://localhost:${port}\n  Ctrl+C to stop\n`);
+  console.log(`\n  Keyturn (${profile}) → http://localhost:${port}\n  Ctrl+C to stop\n`);
   if (!process.argv.includes('--no-open')) {
     const [cmd, args] = process.platform === 'win32' ? ['cmd', ['/c', 'start', '', url]] : process.platform === 'darwin' ? ['open', [url]] : ['xdg-open', [url]];
     spawn(cmd, args, { stdio: 'ignore', detached: true }).on('error', () => {}).unref();

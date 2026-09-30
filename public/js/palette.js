@@ -7,7 +7,7 @@ import { icon } from './icons.js';
 import { getAppearance, setAppearance } from '../theme.js';
 
 const PAGES = [
-  { title: 'Mission Control', sub: 'Live fleet HUD', ic: 'hud', href: '#/hud', kw: 'home dashboard hud overview live' },
+  { title: 'Overview', sub: 'Live fleet HUD', ic: 'hud', href: '#/hud', kw: 'home dashboard hud overview live mission control' },
   { title: 'Analytics', sub: 'Trends and throughput', ic: 'analytics', href: '#/analytics', kw: 'charts trends stats' },
   { title: 'Devices', sub: 'Endpoint inventory', ic: 'devices', href: '#/devices', kw: 'endpoints computers servers workstations' },
   { title: 'Offline devices', sub: 'Devices not checking in', ic: 'devices', href: '#/devices?offline=1', kw: 'down offline' },

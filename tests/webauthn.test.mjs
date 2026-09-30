@@ -12,7 +12,7 @@ import { EntityStore } from '../dist/entity-store.js';
 import { ApproverService, cborDecode } from '../dist/webauthn.js';
 import { OperationService } from '../dist/operations.js';
 
-const RP = { id: 'localhost', name: 'Command Center', origins: ['http://localhost:39300'] };
+const RP = { id: 'localhost', name: 'Keyturn', origins: ['http://localhost:39300'] };
 const ORIGIN = RP.origins[0];
 const sha256 = (b) => createHash('sha256').update(b).digest();
 const b64u = (b) => Buffer.from(b).toString('base64url');

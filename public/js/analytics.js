@@ -82,7 +82,7 @@ export async function analyticsView(el) {
           <div class="hc-head"><h2 class="hc-title">${icon('history')} Observed change volume</h2><span class="hc-meta">${a.changes.total} changes</span></div>
           ${a.changes.total ? `<div class="chart-box" style="height:120px">${areaLine(a.changes.daily.map((d) => d.changes), { w: 600, h: 120, color: 'var(--chart-4)', title: 'observed changes per day' })}</div>
             ${hBars(a.changes.byField.slice(0, 6).map((f, i) => ({ label: FIELD_LABEL(f.field), value: f.count, color: `var(--chart-${(i % 6) + 1})` })))}`
-            : '<div class="hc-empty">No field changes observed in this window. That can mean a stable fleet or no syncs — check freshness on Mission Control.</div>'}
+            : '<div class="hc-empty">No field changes observed in this window. That can mean a stable fleet or no syncs — check freshness on Overview.</div>'}
         </section>
 
         ${r.available ? `<section class="hud-card glass an-half">

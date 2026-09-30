@@ -16,7 +16,7 @@ In NinjaOne go to **Administration → Apps → API → Client App IDs → Add**
 | Field | Value |
 |---|---|
 | Application platform | API Services (machine-to-machine) |
-| Name | e.g. `Mission Control Reporting` |
+| Name | e.g. `Keyturn Reporting` |
 | Scopes | **Monitoring** only |
 | Allowed grant types | **Client credentials** |
 
@@ -27,7 +27,7 @@ Copy the **client ID** and **client secret**.
 | Field | Value |
 |---|---|
 | Application platform | **Native** |
-| Name | e.g. `Mission Control Command` |
+| Name | e.g. `Keyturn Command` |
 | Redirect URI | `http://127.0.0.1` (exactly — no port, no trailing slash) |
 | Scopes | **Monitoring** and **Management** (leave Control off) |
 | Allowed grant types | **Authorization code** and **Refresh token** |
@@ -40,8 +40,8 @@ Why two apps? The read-only identity can never borrow write authority. See
 ## 2. Install and configure
 
 ```powershell
-git clone https://github.com/Solve4x-ai/Mission-Control.git
-cd Mission-Control
+git clone https://github.com/Solve4x-ai/Keyturn.git
+cd Keyturn
 npm install
 npm run setup
 ```
@@ -81,7 +81,7 @@ Later re-authorizations can be done from **Settings → Reconnect** in the UI.
 
 Never paste the authorization URL, code, token, or secret into chat or logs.
 
-## 4. Start the Command Center
+## 4. Start the dashboard
 
 ```powershell
 npm run ui

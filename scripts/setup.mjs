@@ -56,7 +56,7 @@ function setEnv(file, values) {
   writeFileSync(file, text);
 }
 
-console.log(`\n${bold('Mission Control setup')}\n${dim('Creates git-ignored files in config/. Press Enter to keep a value.')}\n`);
+console.log(`\n${bold('Keyturn setup')}\n${dim('Creates git-ignored files in config/. Press Enter to keep a value.')}\n`);
 
 for (const name of ['reporting.env', 'command.env']) {
   const target = join(CONFIG, name);
@@ -98,7 +98,7 @@ console.log(`
 ${bold('Next steps')}
 ${missing.length ? `  • Still missing: ${missing.join(', ')} — re-run ${bold('npm run setup')} or edit config/*.env\n` : ''}  1. Authorize the command app once, from an ${bold('elevated')} PowerShell (the redirect listens on port 80):
        ${bold('npm run auth:command')}
-  2. Start the Command Center:
+  2. Start the dashboard:
        ${bold('npm run ui')}   → open the printed http://localhost:39300 link
   3. In the UI: ${bold('Security')} → enroll a passkey, then ${bold('Settings')} → review the policy
      and click ${bold('Merge')} next to your AI client (Claude Desktop, Cursor, Codex, …).

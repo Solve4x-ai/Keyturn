@@ -1,12 +1,14 @@
 <div align="center">
 
-# Mission Control
+# Keyturn
+
+### Your AI proposes. You turn the key.
 
 **Run IT for many organizations in natural language — with a human hand on every change.**
 
 A local command center that lets your AI assistant (Claude, Cursor, Codex, Devin, any MCP client) investigate and operate your RMM fleet — while every endpoint action waits for **your** approval, signed with a passkey.
 
-[![CI](https://github.com/Solve4x-ai/Mission-Control/actions/workflows/ci.yml/badge.svg)](https://github.com/Solve4x-ai/Mission-Control/actions/workflows/ci.yml)
+[![CI](https://github.com/Solve4x-ai/Keyturn/actions/workflows/ci.yml/badge.svg)](https://github.com/Solve4x-ai/Keyturn/actions/workflows/ci.yml)
 ![Node](https://img.shields.io/badge/node-%E2%89%A522.13-3c873a?logo=node.js&logoColor=white)
 ![MCP](https://img.shields.io/badge/MCP-stdio-6e56cf)
 ![Approvals](https://img.shields.io/badge/approvals-WebAuthn%20passkeys-b5179e)
@@ -15,13 +17,15 @@ A local command center that lets your AI assistant (Claude, Cursor, Codex, Devin
 
 [Try the demo](#try-it-in-60-seconds) · [Setup](SETUP.md) · [Features](FEATURES.md) · [Tools](TOOLS.md) · [Connect an AI client](docs/harness-guide.md) · [Security model](docs/security-model.md)
 
-<img src="docs/images/mission-control.png" alt="Mission Control HUD — fleet status, server constellation with evidence-backed DC/DNS/DHCP roles, approvals, risks, and operations" width="100%">
+<img src="docs/images/keyturn-demo.gif" alt="30-second demo: ask an AI assistant about a nearly full DHCP scope, review the exact plan it proposes in Keyturn, approve it with a passkey, and see the verified receipt" width="100%">
+
+<sub>Demo tenant with fictional data · the chat panel stands in for any MCP client (Claude, Cursor, Codex, …)</sub>
 
 </div>
 
 ## Why
 
-MSPs and IT teams already have an agent on every machine. What they don't have is a safe way to let an AI *use* it. Mission Control is that missing layer:
+MSPs and IT teams already have an agent on every machine. What they don't have is a safe way to let an AI *use* it. Keyturn is that missing layer:
 
 - **Talk to your fleet.** "Which DHCP scopes are almost full?" "Why is the reception PC offline?" "Inventory the GPOs on the domain and flag anything unlinked." The assistant answers from collected evidence — not guesses.
 - **Nothing runs without you.** Every endpoint action is an immutable, hashed plan that waits for a human. With a YubiKey, Windows Hello, or Bitwarden passkey enrolled, an AI holding every token on the box still cannot approve anything.
@@ -34,8 +38,8 @@ MSPs and IT teams already have an agent on every machine. What they don't have i
 No RMM account needed. The demo runs the full UI against a fictional MSP with three clients and ~85 devices, sandboxed and read-only:
 
 ```bash
-git clone https://github.com/Solve4x-ai/Mission-Control.git
-cd Mission-Control
+git clone https://github.com/Solve4x-ai/Keyturn.git
+cd Keyturn
 npm install
 npm run demo
 ```
@@ -43,6 +47,10 @@ npm run demo
 Your browser opens at `http://localhost:39399`. Press `Ctrl+C` to stop; `npm run demo -- --reset` regenerates the data.
 
 ## Screenshots
+
+<img src="docs/images/overview.png" alt="Overview — fleet status, server constellation with evidence-backed DC/DNS/DHCP roles, approvals, risks, and operations" width="100%">
+
+**Overview** — fleet health, a server constellation with DC / DNS / DHCP roles taken only from collected evidence, what's waiting on you, and operation success at a glance.
 
 | | |
 |---|---|
@@ -58,7 +66,7 @@ Your browser opens at `http://localhost:39399`. Press `Ctrl+C` to stop; `npm run
 flowchart LR
     AI["AI client<br/>(Claude · Cursor · Codex · Devin)"] -- "MCP · stdio" --> MCP["Connector layer<br/>reporting · command profiles"]
     MCP -- "create_plan" --> Store[("Local evidence store<br/>SQLite · per tenant")]
-    Human["You"] -- "review + passkey" --> UI["Command Center UI<br/>localhost · bearer + WebAuthn"]
+    Human["You"] -- "review + passkey" --> UI["Keyturn dashboard<br/>localhost · bearer + WebAuthn"]
     UI -- "approve · dispatch" --> Store
     Store -- "approved plan only" --> RMM["RMM API<br/>(NinjaOne connector)"]
     RMM --> Agents["RMM agent<br/>on every endpoint"]
@@ -90,8 +98,8 @@ Details: [docs/security-model.md](docs/security-model.md).
 Requirements: **Windows**, **Node.js 22.13+**, and two NinjaOne API applications (an API Services app for read-only reporting and a Native app for commands). The UI and MCP server are cross-platform Node, but the endpoint runbooks and setup scripts are PowerShell-first.
 
 ```powershell
-git clone https://github.com/Solve4x-ai/Mission-Control.git
-cd Mission-Control
+git clone https://github.com/Solve4x-ai/Keyturn.git
+cd Keyturn
 npm install
 npm run build
 Copy-Item config\reporting.env.example config\reporting.env
@@ -99,7 +107,7 @@ Copy-Item config\command.env.example   config\command.env
 Copy-Item config\policy.example.json   config\policy.json
 ```
 
-Then follow **[SETUP.md](SETUP.md)** — about 15 minutes — to create the NinjaOne apps, authorize the command profile, start the Command Center, enroll a passkey, and connect your AI client from **Settings → MCP clients**.
+Then follow **[SETUP.md](SETUP.md)** — about 15 minutes — to create the NinjaOne apps, authorize the command profile, start the dashboard, enroll a passkey, and connect your AI client from **Settings → MCP clients**.
 
 The tracked policy example disables every write. Enable only what you need, per organization.
 
@@ -116,6 +124,12 @@ The UI is vanilla ES modules and CSS (oklch design tokens, View Transitions, con
 ## Roadmap
 
 Additional RMM connectors (the core is connector-agnostic) · SNMPv3 network-edge agent for switches, firewalls, APs, and printers · reboot / service / patch actions as approved runbooks · scheduled management reports · notifications · OS-account separation for the command server. Details in [FEATURES.md](FEATURES.md#roadmap-planned-not-yet-built).
+
+## Support
+
+- **Questions:** [support@solve4x.ai](mailto:support@solve4x.ai)
+- **Bugs and ideas:** [GitHub issues](https://github.com/Solve4x-ai/Keyturn/issues)
+- **Security:** see [SECURITY.md](SECURITY.md) — please report privately
 
 ## License
 

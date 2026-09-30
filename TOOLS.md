@@ -1,4 +1,4 @@
-# Mission Control — Tools Reference (NinjaOne connector)
+# Keyturn — Tools Reference (NinjaOne connector)
 
 This document provides detailed information about all available MCP tools exposed by the NinjaOne connector.
 
