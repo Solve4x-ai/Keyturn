@@ -1,0 +1,26 @@
+{
+  "allowedOrganizationIds": [],
+  "defaultOrganizationId": null,
+  "blockedActions": [
+    "create_organization",
+    "update_organization",
+    "create_location",
+    "update_location",
+    "create_end_user",
+    "update_end_user",
+    "add_role_members",
+    "create_contact",
+    "update_contact",
+    "set_webhook_config",
+    "generate_organization_installer"
+  ],
+  "ticketWritesEnabled": false,
+  "deviceManagementEnabled": false,
+  "administrativeWritesEnabled": false,
+  "deviceScriptsEnabled": false,
+  "powershellRunnerScriptId": null,
+  "softwareDeploymentEnabled": false,
+  "remoteControlEnabled": false,
+  "destructiveOperationsEnabled": false,
+  "reviewWritesEnabled": false
+}

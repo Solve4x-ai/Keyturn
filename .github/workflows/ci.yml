@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - run: npm run test:runner
+      - name: UI syntax check
+        shell: bash
+        run: node --check public/app.js && for f in public/js/*.js; do node --check "$f"; done
+      - name: Demo seeds cleanly
+        run: node --no-warnings scripts/demo.mjs --reset --seed-only

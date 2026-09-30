@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark light" />
+  <title>Keyturn</title>
+  <!-- Early theme init: set data-theme/accent/density/sidebar before first
+       paint so there's no flash. Keep in sync with theme.js applyAppearance(). -->
+  <script>
+    (function () {
+      try {
+        var raw = JSON.parse(localStorage.getItem('n1_appearance') || '{}');
+        if (!raw.v && raw.accent === 'blue') raw.accent = 'cyan';
+        var a = Object.assign({ theme: 'dark', accent: 'cyan', density: 'compact', sidebar: 'expanded' }, raw);
+        var r = document.documentElement;
+        if (a.theme !== 'system') r.dataset.theme = a.theme;
+        if (a.accent !== 'cyan') r.dataset.accent = a.accent;
+        if (a.density !== 'compact') r.dataset.density = a.density;
+        if (a.sidebar === 'collapsed') r.dataset.sidebar = 'collapsed';
+      } catch (e) { /* defaults stand */ }
+    })();
+  </script>
+  <link rel="stylesheet" href="/assets/theme.css" />
+  <link rel="stylesheet" href="/assets/styles.css" />
+  <link rel="stylesheet" href="/assets/shell.css" />
+  <link rel="stylesheet" href="/assets/hud.css" />
+  <link rel="stylesheet" href="/assets/views.css" />
+  <link rel="stylesheet" href="/assets/infra.css" />
+</head>
+<body>
+  <div class="atmosphere" aria-hidden="true"><div class="aurora"></div><div class="grid-dots"></div></div>
+  <div id="app" class="app">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none"><defs><linearGradient id="bm" x1="0" y1="0" x2="32" y2="32"><stop offset="0" stop-color="currentColor"/><stop offset="1" stop-color="currentColor" stop-opacity=".55"/></linearGradient></defs>
+            <circle cx="16" cy="16" r="4.2" fill="url(#bm)"/><circle cx="16" cy="16" r="9.5" stroke="currentColor" stroke-opacity=".35" stroke-width="1.2"/>
+            <circle cx="16" cy="6.5" r="2.1" fill="currentColor"/><circle cx="24.2" cy="20.7" r="2.1" fill="currentColor"/><circle cx="7.8" cy="20.7" r="2.1" fill="currentColor"/>
+            <path d="M16 11.8V8.6M19.6 18.1l2.8 1.6M12.4 18.1l-2.8 1.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </span>
+        <div class="brand-text">
+          <div class="brand-name">Keyturn</div>
+          <div class="brand-sub" id="connection-label">connecting…</div>
+        </div>
+        <button id="sidebar-toggle" class="btn-icon sidebar-toggle" title="Collapse sidebar" aria-label="Collapse sidebar"></button>
+      </div>
+      <nav class="nav" aria-label="Primary">
+        <div class="nav-group" data-label="Monitor">
+          <button class="nav-item" data-view="hud" data-icon="hud" title="Overview"><span class="nav-label">Overview</span></button>
+          <button class="nav-item" data-view="analytics" data-icon="analytics" title="Analytics"><span class="nav-label">Analytics</span></button>
+          <button class="nav-item" data-view="activity" data-icon="activity" title="Activity"><span class="nav-label">Activity</span></button>
+        </div>
+        <div class="nav-group" data-label="Fleet">
+          <button class="nav-item" data-view="devices" data-icon="devices" title="Devices"><span class="nav-label">Devices</span> <span id="nav-devices-count" class="nav-count nav-count-muted" hidden></span></button>
+          <button class="nav-item" data-view="organizations" data-icon="building" title="Organizations"><span class="nav-label">Organizations</span></button>
+          <button class="nav-item" data-view="infrastructure" data-icon="infrastructure" title="Infrastructure"><span class="nav-label">Infrastructure</span></button>
+        </div>
+        <div class="nav-group" data-label="Intelligence">
+          <button class="nav-item" data-view="review" data-icon="review" title="Review Center"><span class="nav-label">Review Center</span> <span id="nav-review-count" class="nav-count" hidden></span></button>
+        </div>
+        <div class="nav-group" data-label="Operate">
+          <button class="nav-item" data-view="approvals" data-icon="approvals" title="Approvals"><span class="nav-label">Approvals</span> <span id="nav-approvals-count" class="nav-count nav-count-warn" hidden></span></button>
+          <button class="nav-item" data-view="operations" data-icon="terminal" title="Operations"><span class="nav-label">Operations</span></button>
+          <button class="nav-item" data-view="runbooks" data-icon="book" title="Runbooks"><span class="nav-label">Runbooks</span></button>
+          <button class="nav-item" data-view="security" data-icon="shield" title="Approval security"><span class="nav-label">Security</span> <span id="nav-security-flag" class="nav-count nav-count-warn" hidden title="Approvals are not human-verified">!</span></button>
+          <button class="nav-item" data-view="settings" data-icon="settings" title="Settings"><span class="nav-label">Settings</span></button>
+        </div>
+        <div class="nav-group" data-label="Report">
+          <button class="nav-item" data-view="reports" data-icon="reports" title="Reports"><span class="nav-label">Reports</span></button>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="operator">
+          <span class="operator-avatar" aria-hidden="true">OP</span>
+          <div class="operator-text">
+            <div class="operator-name">Local operator</div>
+            <div class="operator-sub"><span id="profile-badge" class="badge badge-muted">…</span></div>
+          </div>
+          <button id="appearance-btn" class="btn-icon" title="Appearance" aria-haspopup="dialog" aria-label="Appearance settings"></button>
+        </div>
+      </div>
+    </aside>
+    <div id="appearance-pop" class="appearance-pop" role="dialog" aria-label="Appearance settings" hidden></div>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="scope-switch" role="group" aria-label="Organization scope">
+            <button id="scope-all" class="scope-seg" aria-pressed="true" title="Show every organization"><span id="scope-all-ic"></span>All orgs</button>
+            <button id="scope-pick" class="scope-seg scope-pick" aria-pressed="false" aria-haspopup="listbox" aria-expanded="false" title="Choose an organization">
+              <span id="scope-pick-dot" class="scope-dot"></span><span id="scope-pick-label">Choose organization</span><span id="scope-pick-chev" class="scope-chev"></span>
+            </button>
+          </div>
+          <div id="scope-menu" class="scope-menu" role="listbox" aria-label="Organizations" hidden>
+            <div class="scope-search"><span id="scope-search-ic"></span><input id="scope-search" type="text" placeholder="Find an organization…" autocomplete="off" /></div>
+            <div id="scope-menu-list" class="scope-menu-list"></div>
+          </div>
+        </div>
+        <button id="palette-btn" class="palette-trigger" aria-label="Open command palette" title="Search & jump (Ctrl+K)">
+          <span class="pt-ic" id="palette-ic"></span><span class="pt-text">Search devices, findings, runbooks…</span><kbd>Ctrl</kbd><kbd>K</kbd>
+        </button>
+        <div class="topbar-right">
+          <span id="live-badge" class="live-pill" title="Live invalidation stream"><span class="live-dot"></span><span class="live-text">offline</span></span>
+          <span id="freshness" class="freshness" title="Data freshness — age of the oldest entity sync"></span>
+          <span id="app-status" class="badge badge-muted" hidden>app …</span>
+          <button id="attention-btn" class="btn-icon attention-btn" aria-label="Attention queue" title="Attention queue"><span id="attention-ic"></span><span id="attention-count" class="attention-count" hidden></span></button>
+        </div>
+      </header>
+      <section id="view" class="view" tabindex="-1"></section>
+    </main>
+  </div>
+
+  <div id="attention-pop" class="attention-pop" role="dialog" aria-label="Attention queue" hidden></div>
+  <dialog id="palette" class="palette" aria-label="Command palette">
+    <div class="palette-head"><span id="palette-search-ic"></span><input id="palette-input" type="text" placeholder="Jump to a page, device, finding, runbook…" autocomplete="off" spellcheck="false" /><kbd>Esc</kbd></div>
+    <div id="palette-results" class="palette-results" role="listbox"></div>
+    <div class="palette-foot"><span><kbd>↑</kbd><kbd>↓</kbd> navigate</span><span><kbd>Enter</kbd> open</span><span class="sub">local data only — nothing here executes</span></div>
+  </dialog>
+
+  <div id="drawer-backdrop" class="drawer-backdrop" hidden></div>
+  <aside id="drawer" class="drawer" role="dialog" aria-label="Device inspector" hidden>
+    <div class="drawer-head">
+      <h2 id="drawer-title"></h2>
+      <button id="drawer-close" class="btn-icon" aria-label="Close inspector">✕</button>
+    </div>
+    <div id="drawer-body" class="drawer-body"></div>
+  </aside>
+
+  <script src="/assets/app.js" type="module"></script>
+</body>
+</html>

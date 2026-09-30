@@ -1,0 +1,25 @@
+name: Feature request
+description: Suggest an idea, runbook, or connector
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the situation you run into as an MSP or IT admin.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like to happen?
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [UI, MCP tools, Runbooks / evidence, Review Center, Approvals / safety, New RMM connector, Setup / docs, Other]
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety considerations
+      description: Does this touch endpoints, credentials, or approvals? How should a human stay in control?
