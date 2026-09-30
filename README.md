@@ -127,8 +127,8 @@ Additional RMM connectors (the core is connector-agnostic) · SNMPv3 network-edg
 
 ## Support
 
-- **Questions:** [support@solve4x.ai](mailto:support@solve4x.ai)
-- **Bugs and ideas:** [GitHub issues](https://github.com/Solve4x-ai/Keyturn/issues)
+- **Questions and ideas:** [Discussions](https://github.com/Solve4x-ai/Keyturn/discussions), or [support@solve4x.ai](mailto:support@solve4x.ai)
+- **Bugs:** [GitHub issues](https://github.com/Solve4x-ai/Keyturn/issues)
 - **Security:** see [SECURITY.md](SECURITY.md) — please report privately
 
 ## License

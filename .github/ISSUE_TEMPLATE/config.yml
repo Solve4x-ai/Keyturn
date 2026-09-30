@@ -1,5 +1,11 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Ask a question
+    url: https://github.com/Solve4x-ai/Keyturn/discussions/categories/q-a
+    about: Setup help and how-to questions go to Discussions, not issues.
+  - name: Suggest an idea, runbook, or connector
+    url: https://github.com/Solve4x-ai/Keyturn/discussions/categories/ideas
+    about: Talk it through in Discussions first; it becomes an issue once it's concrete.
   - name: Report a security vulnerability
     url: https://github.com/Solve4x-ai/Keyturn/security/advisories/new
     about: Please report security issues privately.
