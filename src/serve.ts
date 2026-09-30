@@ -15,7 +15,7 @@
 import { randomBytes } from 'node:crypto';
 import { mkdirSync, writeFileSync, readFileSync, existsSync, statSync, createReadStream } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, join, normalize, extname } from 'node:path';
+import { dirname, join, normalize, extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Fastify from 'fastify';
 import type { EntityStore } from './entity-store.js';
@@ -32,10 +32,12 @@ import { buildHud } from './hud.js';
 import { buildAnalytics } from './analytics.js';
 import { buildInfraTopology } from './infra-topology.js';
 import { ApproverService, WebAuthnError, type ClientCredential } from './webauthn.js';
+import { SettingsService, policyHash } from './settings.js';
 
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.NINJA_SERVE_PORT || 3939);
-const PUBLIC_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public');
+const ROOT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..');
+const PUBLIC_DIR = join(ROOT_DIR, 'public');
 
 const CONTENT_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -274,7 +276,9 @@ async function main() {
 
   app.post<{ Body: { purpose?: string; subject?: string } }>('/api/v1/approver/assert/options', async (request, reply) => {
     const purpose = request.body?.purpose;
-    if (purpose !== 'enroll' && purpose !== 'revoke') return reply.code(400).send({ error: 'purpose must be enroll or revoke' });
+    if (purpose !== 'enroll' && purpose !== 'revoke' && purpose !== 'settings') {
+      return reply.code(400).send({ error: 'purpose must be enroll, revoke, or settings' });
+    }
     try { return approver().assertionOptions(purpose, { subject: request.body?.subject }); } catch (e) { return waFail(reply, e); }
   });
 
@@ -309,6 +313,141 @@ async function main() {
       return reply.code(400).send({ error: error?.message ?? 'approval rejected', code: error?.code });
     }
   });
+
+  // ── Settings: connector status, credential tests, PKCE reconnect,
+  //    passkey-gated policy/credential writes, MCP client config ──────────
+  const settingsSvc = new SettingsService(ROOT_DIR);
+  const journalSettings = (tool: string, detail: Record<string, unknown>) => {
+    try {
+      requireStore(mcp).database
+        .prepare(`INSERT INTO operation_journal (ts, profile, connection_id, tool, args_redacted, dry_run, status) VALUES (?,?,?,?,?,0,'ok')`)
+        .run(Date.now(), mcp.getSecurity().profile, null, tool, JSON.stringify(detail));
+    } catch { /* journal is best-effort on stores without the schema */ }
+  };
+  // When approver keys exist, settings writes need a passkey assertion bound
+  // to the exact payload hash — same "human hand on the lever" rule as plan
+  // approval. Bootstrap: no keys enrolled → bearer session may write.
+  // Fails closed: if enrollment can't be determined, the write is refused.
+  const verifySettingsStepUp = (subject: string, stepUp: { challengeId?: string; assertion?: ClientCredential } | undefined) => {
+    let enforced: boolean;
+    try {
+      enforced = approver().enforced();
+    } catch {
+      throw new WebAuthnError('approver_unavailable', 'cannot verify approver keys (local store unavailable) — settings write refused');
+    }
+    if (!enforced) return 'bootstrap';
+    const v = approver().verifyAssertion('settings', String(stepUp?.challengeId ?? ''), stepUp?.assertion as ClientCredential);
+    if (v.challenge.subject !== subject) {
+      throw new WebAuthnError('challenge_mismatch', 'challenge was issued for a different settings change');
+    }
+    return `passkey:${v.name}`;
+  };
+
+  // Settings writes — and anything that spends or replaces the command
+  // credential — run only on the command-profile server. The reporting
+  // profile is read-only; it must not rewrite the policy the command server
+  // enforces, nor rotate the command token.
+  const settingsWriteRefused = (reply: any) =>
+    isCommand() ? null : reply.code(403).send({ error: 'settings changes run on the command-profile server', code: 'forbidden' });
+
+  app.get('/api/v1/settings', async () => ({ ...settingsSvc.status(), profile: mcp.getSecurity().profile }));
+
+  app.post<{ Body: { profile?: string } }>('/api/v1/settings/test', async (request, reply) => {
+    const profile = String(request.body?.profile ?? 'reporting');
+    if (profile !== 'reporting') {
+      const refused = settingsWriteRefused(reply);
+      if (refused) return refused;
+    }
+    return settingsSvc.testConnection(profile);
+  });
+
+  app.post<{ Body: { profile?: string; values?: Record<string, string>; stepUp?: { challengeId?: string; assertion?: ClientCredential } } }>(
+    '/api/v1/settings/env',
+    async (request, reply) => {
+      const refused = settingsWriteRefused(reply);
+      if (refused) return refused;
+      const profile = String(request.body?.profile ?? '');
+      const values = request.body?.values ?? {};
+      const subject = `env:${profile}:${policyHash(values)}`;
+      try {
+        const actor = verifySettingsStepUp(subject, request.body?.stepUp);
+        const result = settingsSvc.updateEnv(profile, values);
+        journalSettings('settings.env_update', { actor, profile, keys: Object.keys(values), subject });
+        return { ...result, actor, restartRequired: true };
+      } catch (error: any) {
+        if (error instanceof WebAuthnError) return waFail(reply, error);
+        return reply.code(400).send({ error: error?.message ?? 'env update failed', code: error?.code });
+      }
+    },
+  );
+
+  app.post<{ Body: { stepUp?: { challengeId?: string; assertion?: ClientCredential } } }>('/api/v1/settings/reconnect/start', async (request, reply) => {
+    const refused = settingsWriteRefused(reply);
+    if (refused) return refused;
+    let actor: string;
+    try {
+      actor = verifySettingsStepUp('reconnect:command', request.body?.stepUp);
+    } catch (error) {
+      return waFail(reply, error);
+    }
+    const r = settingsSvc.startReconnect();
+    if (r.state !== 'error') journalSettings('settings.reconnect_start', { actor });
+    return r.state === 'error' ? reply.code(400).send(r) : r;
+  });
+  app.get('/api/v1/settings/reconnect/status', async () => settingsSvc.reconnectStatus());
+  app.post('/api/v1/settings/reconnect/cancel', async () => settingsSvc.cancelReconnect());
+
+  app.get('/api/v1/settings/policy', async () => settingsSvc.readPolicy());
+
+  app.post<{ Body: { policy?: Record<string, unknown>; stepUp?: { challengeId?: string; assertion?: ClientCredential } } }>(
+    '/api/v1/settings/policy',
+    async (request, reply) => {
+      const refused = settingsWriteRefused(reply);
+      if (refused) return refused;
+      const policy = request.body?.policy;
+      const subject = `policy:${policyHash(policy)}`;
+      try {
+        const actor = verifySettingsStepUp(subject, request.body?.stepUp);
+        const result = settingsSvc.writePolicy(policy);
+        mcp.reloadPolicy(); // hot-apply for this process; stdio MCP clients reload on respawn
+        // Without NINJA_POLICY_PATH this server runs built-in safe defaults and
+        // never reads the file — say so instead of claiming it applied.
+        const configured = (process.env.NINJA_POLICY_PATH || '').trim();
+        const applied = !!configured && resolve(configured) === resolve(result.path);
+        journalSettings('settings.policy_update', { actor, hash: result.hash, subject, applied });
+        return { ...result, actor, applied };
+      } catch (error: any) {
+        if (error instanceof WebAuthnError) return waFail(reply, error);
+        return reply.code(400).send({ error: error?.message ?? 'policy update failed', code: error?.code });
+      }
+    },
+  );
+
+  app.get('/api/v1/settings/mcp-clients', async () => ({ clients: settingsSvc.clients() }));
+
+  app.get<{ Querystring: { client?: string } }>('/api/v1/settings/mcp-config', async (request, reply) => {
+    const client = settingsSvc.clients().find((c) => c.id === request.query.client);
+    if (!client) return reply.code(404).send({ error: 'unknown client' });
+    return { client, ...settingsSvc.configBlock(client.format) };
+  });
+
+  app.post<{ Body: { client?: string; stepUp?: { challengeId?: string; assertion?: ClientCredential } } }>(
+    '/api/v1/settings/mcp-config/merge',
+    async (request, reply) => {
+      const refused = settingsWriteRefused(reply);
+      if (refused) return refused;
+      const client = String(request.body?.client ?? '');
+      try {
+        const actor = verifySettingsStepUp(`mcp:${client}`, request.body?.stepUp);
+        const result = settingsSvc.mergeClientConfig(client);
+        journalSettings('settings.mcp_config_merge', { actor, client, path: result.path });
+        return { ...result, actor, restartClient: true };
+      } catch (error: any) {
+        if (error instanceof WebAuthnError) return waFail(reply, error);
+        return reply.code(400).send({ error: error?.message ?? 'merge failed', code: error?.code });
+      }
+    },
+  );
 
   app.post<{ Params: { id: string }; Body: { approvalId?: string } }>(
     '/api/v1/plans/:id/execute',

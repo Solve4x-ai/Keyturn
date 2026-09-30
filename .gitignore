@@ -42,3 +42,6 @@ Thumbs.db
 .devin/mcp_config.local.json
 *.local.json
 .tmp/
+
+# Demo tenant (npm run demo) — fictional, regenerated on demand
+.demo/

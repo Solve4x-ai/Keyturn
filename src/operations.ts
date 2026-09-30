@@ -58,8 +58,8 @@ export interface OperationSecurity {
     deviceScriptsEnabled?: boolean;
     powershellRunnerScriptId?: number | null;
     allowedOrganizationIds?: number[];
-    powershellSessionTtlSeconds?: number;
-    powershellSessionMaxCommands?: number;
+    powershellSessionTtlSeconds?: number | undefined;
+    powershellSessionMaxCommands?: number | undefined;
   };
   principal?: { profile?: string; credentialKind?: string } | undefined;
 }

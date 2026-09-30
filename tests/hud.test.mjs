@@ -21,7 +21,7 @@ function seed({ syncAgeMs = 60_000 } = {}) {
   const dev = db.prepare('INSERT INTO entities_device (device_id, system_name, display_name, dns_name, org_id, node_class, offline, last_contact, updated_at, seen_at) VALUES (?,?,?,?,?,?,?,?,?,?)');
   dev.run(10, 'CLINICDC1', 'DC 1', 'clinicdc1.clinic.local', 1, 'WINDOWS_SERVER', 0, (NOW - 60_000) / 1000, NOW, NOW);
   dev.run(11, 'CLINICSQL', 'SQL box', 'clinicsql.clinic.local', 1, 'WINDOWS_SERVER', 1, (NOW - 3 * DAY) / 1000, NOW, NOW);
-  dev.run(12, 'FRONTDESK', 'Front desk', null, 1, 'WINDOWS_WORKSTATION', 0, (NOW - 120_000) / 1000, NOW, NOW);
+  dev.run(12, 'RECEPTION', 'Reception', null, 1, 'WINDOWS_WORKSTATION', 0, (NOW - 120_000) / 1000, NOW, NOW);
   dev.run(20, 'OTHERWS', 'Other WS', null, 2, 'WINDOWS_WORKSTATION', 1, (NOW - 10 * DAY) / 1000, NOW, NOW);
   db.prepare('INSERT INTO sync_state (entity_type, last_sync_at, item_count) VALUES (?, ?, ?)').run('devices', NOW - syncAgeMs, 4);
   const inf = db.prepare('INSERT INTO infra_entities (id, connection_id, org_id, namespace, category, stable_key, display_name, first_seen_at, last_seen_at, source_device_id) VALUES (?,?,?,?,?,?,?,?,?,?)');

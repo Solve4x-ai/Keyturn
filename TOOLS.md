@@ -406,7 +406,7 @@ the command profile + `reviewWritesEnabled` policy flag.
 | `suppress_review` | command | Suppress a fingerprint (with reason + optional expiry) | `org`, `fingerprint`, `reason`, `expiresAt?` |
 | `link_review_operation` | command | Link an existing operation/plan as context — never approves or dispatches | `org`, `itemId`, `operationId?`, `planId?` |
 
-Semantics: `docs/review-center.md`. Stable codes: `review_item_not_found`,
+Stable codes: `review_item_not_found`,
 `revision_conflict`, `provenance_required`, `rationale_required`,
 `evidence_required`, `suppressed`, `cross_org`, `decision_superseded`.
 

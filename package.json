@@ -2,6 +2,15 @@
   "name": "mission-control",
   "version": "1.5.0",
   "description": "Mission Control — an RMM-agnostic command center for managing organizations, infrastructure, and endpoints through safe natural-language workflows. First connector: NinjaOne (MCP over stdio).",
+  "private": true,
+  "homepage": "https://github.com/Solve4x-ai/Mission-Control#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Solve4x-ai/Mission-Control.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Solve4x-ai/Mission-Control/issues"
+  },
   "main": "dist/index.js",
   "type": "module",
   "engines": {
@@ -16,8 +25,12 @@
     "test:runner": "powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File tests/powershell-runner.test.ps1",
     "test:live": "node --require dotenv/config dist/test.js",
     "verify": "npm run build && npm test && npm run test:runner",
+    "setup": "node scripts/setup.mjs",
     "auth": "node --require dotenv/config dist/auth.js",
-    "serve": "node --require dotenv/config dist/serve.js"
+    "auth:command": "node --require dotenv/config dist/auth.js dotenv_config_path=config/command.env",
+    "serve": "node --require dotenv/config dist/serve.js",
+    "ui": "node scripts/ui.mjs",
+    "demo": "npm run build && node --no-warnings scripts/demo.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.30.0",
@@ -30,14 +43,17 @@
   },
   "keywords": [
     "mcp",
-    "mission-control",
+    "model-context-protocol",
     "msp",
-    "ninja",
     "rmm",
-    "monitoring",
-    "security",
-    "audit",
-    "webauthn"
+    "ninjaone",
+    "ai-agents",
+    "claude",
+    "webauthn",
+    "passkeys",
+    "active-directory",
+    "it-automation",
+    "mission-control"
   ],
   "author": "Solve4x",
   "license": "MIT"

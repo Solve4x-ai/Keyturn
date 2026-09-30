@@ -1,6 +1,6 @@
 # Features
 
-This document tracks the implemented capabilities and security boundaries of Mission Control — the Solve4x RMM-agnostic command center (first connector: NinjaOne).
+This document tracks the implemented capabilities and security boundaries of Mission Control — an RMM-agnostic command center (first connector: NinjaOne).
 
 ## Current platform
 
@@ -10,10 +10,10 @@ This document tracks the implemented capabilities and security boundaries of Mis
 - TypeScript runtime with mocked regression tests
 - Separate reporting and command processes
 - Per-tenant SQLite workspace at `%USERPROFILE%\.ninjaone-mcp\data\<tenant>.db` (WAL, shared by both profiles; entity metadata + evidence + review records only — no credentials)
-- **Local browser UI ("Command Center")** via a Fastify `serve` process bound to `127.0.0.1` with bearer-token auth (`launch-serve.cjs`; reporting + command listeners on separate ports). This is the human approval, monitoring, infrastructure, review, and reporting surface — it is not an MCP transport. Open it at `http://localhost:<port>` (required for passkey approvals).
+- **Local browser UI ("Command Center")** via a Fastify `serve` process bound to `127.0.0.1` with bearer-token auth (`npm run serve`; run one listener per profile on separate ports). This is the human approval, monitoring, infrastructure, review, and reporting surface — it is not an MCP transport. Open it at `http://localhost:<port>` (required for passkey approvals).
 - **Optional live inventory sync** — `NINJA_SYNC_INTERVAL_MINUTES=<n>` makes the serve process refresh organizations, devices, policies, and locations from NinjaOne every *n* minutes. Plain NinjaOne API reads (≈4–5 calls per sync at ~100 devices); **no AI/LLM tokens**, nothing runs on endpoints.
-- No MCP HTTP/SSE transport, Docker service, hosted gateway, MCPB bundle, or public package-publishing workflow
-- Clean npm dependency audit at the most recent verification
+- **Demo mode** — `npm run demo` runs the full UI against a fictional MSP (three organizations, ~85 devices) with no RMM account, fully sandboxed and read-only.
+- No MCP HTTP/SSE transport, Docker service, or hosted gateway — local by design
 
 ## Authentication and profile isolation
 

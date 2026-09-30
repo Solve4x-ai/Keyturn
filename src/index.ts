@@ -2040,7 +2040,7 @@ const TOOLS = [
         questionId: { type: 'string' },
         answer: { type: 'string', description: 'The user\'s answer, verbatim' },
         normalized: { type: 'object', description: 'Optional parsed form, e.g. {value: "unknown"} or {entityId}' },
-        actor: { type: 'string', description: 'Optional answering identity for attribution — e.g. the model ("claude-5.1", "gpt-5.6") or user name ("james"). Recorded as mcp:<profile>:<actor> so the transport stays visible.' },
+        actor: { type: 'string', description: 'Optional answering identity for attribution — e.g. the model ("claude-5.1", "gpt-5.6") or user name ("alex"). Recorded as mcp:<profile>:<actor> so the transport stays visible.' },
         idempotencyKey: { type: 'string' }
       },
       required: ['org', 'questionId', 'answer']
@@ -2268,6 +2268,17 @@ export class NinjaOneMCPServer {
   /** Upstream API client — shared by the local server adapter. */
   public getApi(): NinjaOneAPI {
     return this.api;
+  }
+
+  /**
+   * Re-read the policy file and re-filter the exposed tool surface. Called
+   * by the local server after a passkey-gated policy edit — the running
+   * process picks up the change without a restart (stdio MCP clients still
+   * need a respawn; they load policy at process start).
+   */
+  public reloadPolicy(): void {
+    this.security = loadRuntimeSecurity();
+    this.exposedTools = filterTools(TOOLS, this.security).map((tool) => this.applyNameOrIdSchema(tool));
   }
 
   /** Runtime security (profile + principal + policy). */

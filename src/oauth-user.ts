@@ -2,9 +2,13 @@ import { promises as fs } from 'fs';
 import { homedir } from 'os';
 import { dirname, join, resolve } from 'path';
 
-/** Cross-process mutex for refresh: two server processes must never race a refresh-token rotation. */
-async function withTokenLock<T>(fn: () => Promise<T>): Promise<T> {
-  const lockDir = `${UserOAuth.filePath}.lock`;
+/**
+ * Cross-process mutex for refresh: two processes must never race a
+ * refresh-token rotation. Exported so every rotation path (runtime refresh,
+ * Settings credential test) serializes on the same lock directory.
+ */
+export async function withTokenLock<T>(fn: () => Promise<T>, tokenFile: string = UserOAuth.filePath): Promise<T> {
+  const lockDir = `${tokenFile}.lock`;
   const deadline = Date.now() + 30_000;
   for (;;) {
     try {

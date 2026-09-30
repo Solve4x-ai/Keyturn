@@ -203,7 +203,7 @@ test('audit filenames remove path components', () => {
 // ── Local entity store / resolver (SQLite-backed workspace) ──
 
 const DEVICES = [
-  { id: 11, systemName: 'WS-001', displayName: 'Front Desk PC', dnsName: 'ws-001.corp.local', organizationId: 2, locationId: 7, nodeClass: 'WINDOWS_WORKSTATION', offline: false, lastContact: 1000 },
+  { id: 11, systemName: 'WS-001', displayName: 'Reception PC', dnsName: 'ws-001.corp.local', organizationId: 2, locationId: 7, nodeClass: 'WINDOWS_WORKSTATION', offline: false, lastContact: 1000 },
   { id: 12, systemName: 'WS-002', displayName: 'Back Office', organizationId: 2, nodeClass: 'WINDOWS_WORKSTATION', offline: true, lastContact: 900 },
   { id: 13, systemName: 'SRV-01', displayName: 'File Server', organizationId: 3, nodeClass: 'WINDOWS_SERVER', offline: false, lastContact: 1100 },
 ];
@@ -281,7 +281,7 @@ test('resolver matches exact, prefix, substring, and normalized names', async ()
   const prefix = await resolver.resolveDevice('SRV');
   assert.equal(prefix.id, 13);
 
-  const normalized = await resolver.resolveDevice('front desk pc');
+  const normalized = await resolver.resolveDevice('reception pc');
   assert.equal(normalized.id, 11);
 
   const numeric = await resolver.resolveDevice(12);
@@ -613,9 +613,9 @@ test('normalized device lookup uses the indexed name_norm path', async () => {
   const store = memoryStore();
   store.syncDevices(DEVICES);
   const row = store.getDeviceById(11);
-  assert.ok(row.name_norm.includes('frontdeskpc'), 'name_norm populated on sync');
+  assert.ok(row.name_norm.includes('receptionpc'), 'name_norm populated on sync');
   const resolver = new EntityResolver(mockApi(), store);
-  const r = await resolver.resolveDevice('frontdeskpc');
+  const r = await resolver.resolveDevice('receptionpc');
   assert.equal(r.id, 11);
 });
 
@@ -757,7 +757,7 @@ test('listDevices paginates and filters server-side', () => {
   const page2 = s.listDevices({ page: 2, pageSize: 2 });
   assert.equal(page2.rows.length, 1);
   assert.notEqual(page1.rows[0].device_id, page2.rows[0].device_id);
-  const filtered = s.listDevices({ q: 'front' });
+  const filtered = s.listDevices({ q: 'recep' });
   assert.equal(filtered.total, 1);
   assert.equal(filtered.rows[0].org_name, 'Acme Corp');
   const scoped = s.listDevices({ orgId: 3 });
@@ -810,7 +810,7 @@ test('getChangesLabeled resolves entity display names', () => {
   const rows = s.getChangesLabeled({ entityType: 'device', entityId: 11 });
   const flip = rows.find((c) => c.field === 'offline');
   assert.ok(flip);
-  assert.equal(flip.entity_label, 'Front Desk PC');
+  assert.equal(flip.entity_label, 'Reception PC');
   assert.equal(flip.org_name, 'Acme Corp');
 });
 
@@ -1538,7 +1538,7 @@ test('serve /api/v1 snapshots: v6 upgrade drops investigations; capture failure 
       CREATE TABLE device_sessions (id TEXT PRIMARY KEY, connection_id TEXT, device_id INTEGER NOT NULL, plan_id TEXT NOT NULL, approval_id TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open', max_commands INTEGER NOT NULL, commands_used INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL);
       INSERT INTO investigations (id, connection_id, title, org_id, revision, last_seen_seq, created_at, updated_at) VALUES ('inv-pre', '${connId}', 'pre-upgrade evidence', 2, 1, 0, ${Date.now()}, ${Date.now()});
       INSERT INTO investigation_items (investigation_id, entity_type, entity_id, kind, snapshot_json, captured_at, watermark_seq) VALUES ('inv-pre', 'device', 11, 'entity', '{"display_name":"WS-001"}', ${Date.now()}, 0);
-      INSERT INTO entities_device (device_id, system_name, display_name, org_id, offline, seen_at) VALUES (11, 'WS-001', 'Front Desk PC', 2, 0, ${Date.now()});
+      INSERT INTO entities_device (device_id, system_name, display_name, org_id, offline, seen_at) VALUES (11, 'WS-001', 'Reception PC', 2, 0, ${Date.now()});
       PRAGMA user_version = 6;
     `);
     db.close();

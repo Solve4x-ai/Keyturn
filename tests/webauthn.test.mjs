@@ -71,7 +71,7 @@ const cmdSecurity = {
 };
 function setup() {
   const store = new EntityStore(openDatabase(':memory:'));
-  store.syncDevices([{ id: 11, systemName: 'WS-001', displayName: 'Front Desk PC', organizationId: 2, nodeClass: 'WINDOWS_WORKSTATION', offline: false, lastContact: 1000 }]);
+  store.syncDevices([{ id: 11, systemName: 'WS-001', displayName: 'Reception PC', organizationId: 2, nodeClass: 'WINDOWS_WORKSTATION', offline: false, lastContact: 1000 }]);
   const svc = new ApproverService(store, RP);
   const ops = new OperationService(store, { async getDevice() { return { id: 11, organizationId: 2, offline: false }; } }, cmdSecurity);
   return { store, svc, ops };

@@ -21,6 +21,9 @@ export interface LocalPolicy {
    * is read-only.
    */
   reviewWritesEnabled: boolean;
+  /** Chained PowerShell session bounds; omitted → built-in defaults apply. */
+  powershellSessionTtlSeconds?: number | undefined;
+  powershellSessionMaxCommands?: number | undefined;
 }
 
 /**
@@ -355,7 +358,7 @@ function parseBoolean(value: unknown, fallback: boolean): boolean {
   return typeof value === 'boolean' ? value : fallback;
 }
 
-function parsePolicy(raw: unknown): LocalPolicy {
+export function parsePolicy(raw: unknown): LocalPolicy {
   if (!raw || typeof raw !== 'object') {
     throw new Error('NinjaOne policy must be a JSON object');
   }
@@ -391,6 +394,16 @@ function parsePolicy(raw: unknown): LocalPolicy {
     reviewWritesEnabled: parseBoolean(value.reviewWritesEnabled, false),
     remoteControlEnabled: parseBoolean(value.remoteControlEnabled, false),
     destructiveOperationsEnabled: parseBoolean(value.destructiveOperationsEnabled, false),
+    powershellSessionTtlSeconds:
+      typeof value.powershellSessionTtlSeconds === 'number' && value.powershellSessionTtlSeconds > 0
+        ? value.powershellSessionTtlSeconds
+        : undefined,
+    powershellSessionMaxCommands:
+      typeof value.powershellSessionMaxCommands === 'number' &&
+      Number.isInteger(value.powershellSessionMaxCommands) &&
+      value.powershellSessionMaxCommands >= 0
+        ? value.powershellSessionMaxCommands
+        : undefined,
   };
 }
 

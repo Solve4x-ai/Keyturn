@@ -261,7 +261,7 @@ export class ApproverService {
   }
 
   /* ── Assertions (approve / enroll step-up / revoke) ─────────────────── */
-  assertionOptions(purpose: 'approve' | 'enroll' | 'revoke', bind: { planId?: string | undefined; planHash?: string | undefined; subject?: string | undefined } = {}) {
+  assertionOptions(purpose: 'approve' | 'enroll' | 'revoke' | 'settings', bind: { planId?: string | undefined; planHash?: string | undefined; subject?: string | undefined } = {}) {
     const creds = this.credentials();
     if (!creds.length) throw new WebAuthnError('no_credentials', 'no approver keys enrolled');
     const { id, challenge } = this.challenge(purpose, bind);

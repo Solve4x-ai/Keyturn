@@ -20,6 +20,7 @@ import { hudView, leaveHud, attentionItem } from './js/hud.js';
 import { analyticsView } from './js/analytics.js';
 import { initPalette } from './js/palette.js';
 import { securityView } from './js/security.js';
+import { settingsView } from './js/settings.js';
 import { initScope, adoptUrlOrg, updateOrgs, scopeOrg, setScope } from './js/scope.js';
 
 const setScopeQuiet = (v) => setScope(v, { render: false });
@@ -374,6 +375,7 @@ const views = {
   hud: hudView,
   analytics: analyticsView,
   security: securityView,
+  settings: settingsView,
 
   async activity(el) {
     const [data, devs] = await Promise.all([
@@ -415,7 +417,7 @@ const views = {
 //   #/approvals #/plan/<id> #/operation/<id>  (M5A operation surfaces)
 // Structural changes (view/device/tab) push history; parameter changes
 // (snapshot selection) replace — so back/forward stays meaningful.
-const NAV_VIEWS = ['hud', 'analytics', 'overview', 'devices', 'organizations', 'infrastructure', 'review', 'reports', 'changes', 'activity', 'approvals', 'operations', 'runbooks', 'security'];
+const NAV_VIEWS = ['hud', 'analytics', 'overview', 'devices', 'organizations', 'infrastructure', 'review', 'reports', 'changes', 'activity', 'approvals', 'operations', 'runbooks', 'security', 'settings'];
 /* Sidebar highlight for views without their own nav entry. */
 const NAV_PARENT = { device: 'devices', overview: 'hud', changes: 'activity', plan: 'approvals', operation: 'operations', gallery: 'hud', org: 'organizations' };
 

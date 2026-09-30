@@ -1,77 +1,153 @@
-# Local setup
+# Setup
 
-This project runs two local stdio MCP processes: a read-only reporting profile and a separately authorized command profile. Node.js 22.13 or newer is required (built-in `node:sqlite` powers the local workspace database).
+About 15 minutes. You'll need **Windows**, **Node.js 22.13+**
+([download](https://nodejs.org)), and NinjaOne administrator access to create
+two API applications.
 
-## 1. Install and build
+> Just want to look around first? `npm install && npm run demo` runs the full
+> UI with fictional data and no NinjaOne account.
+
+## 1. Create two NinjaOne API apps
+
+In NinjaOne go to **Administration → Apps → API → Client App IDs → Add**.
+
+**Reporting app** (read-only)
+
+| Field | Value |
+|---|---|
+| Application platform | API Services (machine-to-machine) |
+| Name | e.g. `Mission Control Reporting` |
+| Scopes | **Monitoring** only |
+| Allowed grant types | **Client credentials** |
+
+Copy the **client ID** and **client secret**.
+
+**Command app** (writes, always behind your approval)
+
+| Field | Value |
+|---|---|
+| Application platform | **Native** |
+| Name | e.g. `Mission Control Command` |
+| Redirect URI | `http://127.0.0.1` (exactly — no port, no trailing slash) |
+| Scopes | **Monitoring** and **Management** (leave Control off) |
+| Allowed grant types | **Authorization code** and **Refresh token** |
+
+Copy the **client ID**. Native apps have no secret — that's intentional.
+
+Why two apps? The read-only identity can never borrow write authority. See
+[docs/security-model.md](docs/security-model.md).
+
+## 2. Install and configure
 
 ```powershell
-cd C:\Mission-Control
+git clone https://github.com/Solve4x-ai/Mission-Control.git
+cd Mission-Control
 npm install
-npm run verify
+npm run setup
 ```
 
-## 2. Create local configuration
+`npm run setup` asks for your region and the IDs from step 1, writes the
+git-ignored `config/reporting.env`, `config/command.env`, and
+`config/policy.json` (with every write disabled), and builds. Re-run it any
+time; press Enter to keep a value.
+
+<details>
+<summary>Prefer to edit files by hand?</summary>
 
 ```powershell
 Copy-Item config\reporting.env.example config\reporting.env
-Copy-Item config\command.env.example config\command.env
-Copy-Item config\policy.example.json config\policy.json
+Copy-Item config\command.env.example   config\command.env
+Copy-Item config\policy.example.json   config\policy.json
+npm run build
 ```
 
-These destination files are ignored by Git.
+Fill in the IDs, set `NINJA_BASE_URL` to your region
+(`https://app|us2|eu|ca|oc.ninjarmm.com`), and set `NINJA_POLICY_PATH` in both
+env files to the **absolute** path of `config\policy.json`.
+</details>
 
-Configure `reporting.env` with an API Services application using Client Credentials and Monitoring scope. Configure `command.env` with a Native application's public client ID, the exact loopback redirect, Monitoring and Management scopes, and its profile-specific token path. Do not add a client secret to the Native profile.
+## 3. Authorize the command app (once)
 
-In `policy.json`, set explicit allowed organization IDs. Leave every write category false until the category is required and reviewed.
-
-## 3. Authorize the command profile
-
-From an elevated PowerShell window:
+From an **elevated** PowerShell in the repo (the `http://127.0.0.1` redirect
+listens on port 80, which needs admin):
 
 ```powershell
-$env:DOTENV_CONFIG_PATH = 'C:\Mission-Control\config\command.env'
-npm.cmd run auth
+npm run auth:command
 ```
 
-Complete the browser consent flow. Never paste the authorization URL, authorization code, token, or secret into chat or logs.
+Sign in and consent in the browser. The refresh token is saved to
+`%USERPROFILE%\.ninjaone-mcp\command\tokens.json` and rotates on every use.
+Later re-authorizations can be done from **Settings → Reconnect** in the UI.
 
-## 4. Protect local credentials
+Never paste the authorization URL, code, token, or secret into chat or logs.
 
-Replace `YOUR_WINDOWS_ACCOUNT` with the account that runs the MCP client:
+## 4. Start the Command Center
 
 ```powershell
-$account = 'YOUR_WINDOWS_ACCOUNT'
-$files = @(
-  'C:\Mission-Control\config\reporting.env',
-  'C:\Mission-Control\config\command.env',
-  'C:\Mission-Control\config\policy.json',
-  "$env:USERPROFILE\.ninjaone-mcp\command\tokens.json"
-)
-
-foreach ($file in $files) {
-  icacls.exe $file /inheritance:r /grant:r "${account}:(F)" "SYSTEM:(F)"
-}
+npm run ui
 ```
 
-Verify every file with `icacls.exe <path>`. Stop if an unexpected account retains access.
+Your browser opens at `http://localhost:39300`, signed in. (Use `localhost`,
+not `127.0.0.1` — browsers only allow passkeys on a hostname.) Inventory syncs
+from NinjaOne every 5 minutes; that's plain API reads and runs nothing on
+endpoints.
 
-## 5. Configure the MCP client
+Then, in the UI:
 
-Use both entries in [mcp-config.json.example](mcp-config.json.example). They pass only the path to the correct ignored profile file. Restart the MCP client after changing its configuration.
+1. **Security → Enroll a key.** A YubiKey, Windows Hello, or Bitwarden passkey.
+   From now on every approval and every settings change needs it.
+2. **Settings → Safety policy.** Allow the organizations you manage and turn
+   on only the write categories you need.
+3. **Settings → MCP clients → Merge** next to your AI client (Claude Desktop,
+   Cursor, Windsurf, Codex, Devin). It writes both server entries with the
+   right paths and keeps a backup. Restart the client afterwards.
 
-Call `get_auth_profile` first in each entry and verify:
+## 5. Try it
 
-- reporting reports profile `reporting`
-- command reports profile `command`
-- expected organization boundaries and disabled feature categories are shown
+Ask your assistant something like:
 
-## 6. Operating rules
+- "Which of my servers are offline, and since when?"
+- "Show DHCP scopes above 80% for Contoso."
+- "Run the AD health runbook on DC01." → it creates a plan → approve it in
+  **Approvals** with your passkey → the results appear under
+  **Infrastructure**.
 
-- Use reporting for normal investigation and audits.
-- Use command only when the user explicitly requests a production change.
-- Inspect exact targets and proposed fields before writes.
-- Keep scripts, software deployment, administrative writes, destructive operations, and remote-control capabilities disabled unless separately designed and approved.
-- Remember that `confirm: true` is not an independent physical approval.
-- Revoke the command application's refresh token in NinjaOne if it may be compromised.
+The assistant should call `get_auth_profile` first; the reporting entry must
+report `reporting` and the command entry `command`.
 
-The runtime supports stdio only. Any non-`stdio` `MCP_MODE` fails at startup.
+### Endpoint runbooks
+
+Diagnostics run through one saved NinjaOne automation, the approved PowerShell
+runner. Add [`automations/Solve4x-Approved-PowerShell-Runner.ps1`](automations/README.md)
+to your NinjaOne script library and put its script ID in **Settings → Safety
+policy → PowerShell runner script ID**.
+
+## 6. Lock down local credentials (recommended)
+
+From an elevated PowerShell in the repo:
+
+```powershell
+.\scripts\harden-local-acls.ps1 -Account "$env:USERDOMAIN\$env:USERNAME"
+```
+
+This removes inherited access to the env files, the policy, and the command
+token. Check with `icacls.exe config\command.env`.
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Everything is empty / "no connection" | `NINJA_BASE_URL` is missing or the wrong region. |
+| `404 Route GET:/api/v1/... not found` | You rebuilt but didn't restart `npm run ui`. |
+| Passkey prompt never appears | Open `http://localhost:39300`, not `127.0.0.1`. |
+| `npm run auth:command` fails to listen | Run it from an elevated PowerShell; the redirect needs port 80. |
+| AI client doesn't see the tools | Restart the client after Merge; check `NINJA_POLICY_PATH` is absolute. |
+| `ExperimentalWarning: SQLite` | Harmless — Node's built-in `node:sqlite`. |
+
+## Operating rules
+
+- Use the reporting profile for investigation and audits.
+- Use the command profile only when you intend a change.
+- `confirm: true` on a tool call is not approval — the plan still waits for you.
+- If the command token may be compromised, revoke it in NinjaOne
+  (**Administration → Apps → API → OAuth tokens**) before anything else.
