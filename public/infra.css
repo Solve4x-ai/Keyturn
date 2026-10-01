@@ -134,14 +134,14 @@
 .ok-v { font-family: var(--font-display); font-size: 26px; font-weight: 650; line-height: 1.1; color: var(--text-strong); letter-spacing: -.02em; }
 .ok-v small { font-size: 14px; color: var(--text-faint); font-weight: 500; }
 .org-kpi.tone-bad .ok-v { color: var(--bad); } .org-kpi.tone-warn .ok-v { color: var(--warn); }
-.org-grid {
+.orgp-layout {
   display: grid; gap: var(--sp-4); grid-template-columns: repeat(12, minmax(0, 1fr));
   grid-template-areas: "att att att att att infra infra infra infra infra infra infra" "srv srv srv srv srv srv srv srv risk risk risk risk" "off off off off act act act act act act act act";
 }
 .og-att { grid-area: att; } .og-infra { grid-area: infra; } .og-srv { grid-area: srv; } .og-risk { grid-area: risk; } .og-off { grid-area: off; } .og-act { grid-area: act; }
 @container orgp (max-width: 1150px) {
   .org-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .org-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "att" "infra" "srv" "risk" "off" "act"; }
+  .orgp-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "att" "infra" "srv" "risk" "off" "act"; }
 }
 .risk-list, .off-list { display: flex; flex-direction: column; gap: 2px; margin: 0 calc(var(--sp-2) * -1); }
 .risk-row, .off-row { display: grid; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 9px; text-decoration: none; color: inherit; }
