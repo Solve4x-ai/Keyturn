@@ -135,7 +135,7 @@ export async function orgPageView(el) {
         ].map(([ic, k, v, s, tone, href]) => `<a class="org-kpi glass tone-${tone}" href="${href}"><span class="icon-tile tile-${tone}">${icon(ic)}</span><div><div class="an-k">${k}</div><div class="ok-v">${v}</div><div class="an-s">${s}</div></div></a>`).join('')}
       </div>
 
-      <div class="org-grid">
+      <div class="orgp-layout">
         <section class="hud-card glass og-att">
           <div class="hc-head"><h2 class="hc-title">${icon('bell')} Needs attention</h2><span class="hc-meta">${hud.attentionTotal ? plural(hud.attentionTotal, 'item') : ''}</span></div>
           ${hud.attention.length ? `<div class="att-list">${hud.attention.slice(0, 7).map(attentionItem).join('')}</div>` : `<div class="all-clear">${icon('shield')}<div><strong>All clear</strong><div class="sub">Nothing needs you in this organization.</div></div></div>`}
