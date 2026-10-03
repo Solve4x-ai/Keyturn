@@ -68,11 +68,13 @@ export async function approvalsView(el) {
     <div class="section-title">${icon('key')} Awaiting approval</div>
     ${pending.length ? `<div class="plan-grid">${pending.map((p) => {
       const rb = p.args?.runbook; const sel = p.args?.selection;
+      const health = p.operation === 'set_health_status';
+      const preview = health ? `${p.args?.field} → ${p.args?.status}` : String(p.args?.command ?? '').split('\n').find((l) => l.trim()) ?? '';
       return `<button class="plan-card glass" data-review-plan="${esc(p.id)}">
-        <div class="pc-top"><span class="icon-tile tile-warn">${icon(rb ? 'book' : 'terminal')}</span>
-          <div style="min-width:0"><div class="pc-title">${esc(rb ? rb.id : p.operation)}${rb ? ` <span class="sub">v${rb.version}</span>` : ''}</div>
-          <div class="pc-target">${sel ? `${icon('layers')} batch · ${(sel.memberIds || []).length} devices` : `${icon('devices')} ${esc(p.device_label || `device ${p.target_id}`)}`}</div></div></div>
-        <div class="pc-cmd mono-val">${esc(String(p.args?.command ?? '').split('\n').find((l) => l.trim()) ?? '').slice(0, 110)}</div>
+        <div class="pc-top"><span class="icon-tile tile-warn">${icon(rb ? 'book' : health ? 'pulse' : 'terminal')}</span>
+          <div style="min-width:0"><div class="pc-title">${esc(rb ? rb.id : health ? 'Set health status' : p.operation)}${rb ? ` <span class="sub">v${rb.version}</span>` : ''}</div>
+          <div class="pc-target">${sel ? `${icon('layers')} batch · ${(sel.memberIds || []).length} devices` : p.target_type === 'organization' ? `${icon('building')} organization ${esc(p.target_id)}` : `${icon('devices')} ${esc(p.device_label || `device ${p.target_id}`)}`}</div></div></div>
+        <div class="pc-cmd mono-val">${esc(preview.slice(0, 110))}</div>
         <div class="pc-foot"><span class="sub">from <strong>${esc(p.principal || 'unknown')}</strong> · ${ago(p.created_at)}</span><span class="pc-exp">${icon('clock')} <span data-expires="${p.expires_at}">${left(p.expires_at)}</span></span></div>
       </button>`;
     }).join('')}</div>` : `<div class="all-clear glass-inset">${icon('shield')}<div><strong>Nothing awaiting approval</strong><div class="sub">When an AI client proposes endpoint work, the plan appears here with the exact script to review.</div></div></div>`}
@@ -112,18 +114,22 @@ export async function planView(el) {
   const opensSession = !sel && sp?.enabled;
   const script = String(p.args?.command ?? '');
   const lines = script.split('\n');
-  const classification = rb?.classification ?? (rbRef ? null : 'custom');
+  const health = p.operation_name === 'set_health_status' ? p.args : null;
+  const classification = health ? 'modify' : rb?.classification ?? (rbRef ? null : 'custom');
+  const targetLink = p.target_type === 'organization'
+    ? `<a href="#/org/${p.target_id}">organization ${esc(p.target_id)}</a>`
+    : `<a href="#/device/${p.target_id}/overview">${esc(p.device_label || `device ${p.target_id}`)}</a>`;
   const canAct = isCommand && !p.expired && !p.operation;
 
   el.innerHTML = `
     <div data-view-root="plan">
     <a class="back-link" href="#/approvals">${icon('chev-r')} Approvals</a>
     <section class="plan-hero glass ${p.expired ? 'is-expired' : ''}">
-      <span class="icon-tile tile-${p.expired ? 'muted' : 'warn'}">${icon(rbRef ? 'book' : 'terminal')}</span>
+      <span class="icon-tile tile-${p.expired ? 'muted' : 'warn'}">${icon(rbRef ? 'book' : health ? 'pulse' : 'terminal')}</span>
       <div class="ph-body">
         <div class="ph-kicker">Plan review${sel ? ' · batch' : ''}</div>
-        <h1 class="ph-title">${esc(rb?.title ?? (rbRef ? rbRef.id : 'Custom PowerShell'))}</h1>
-        <div class="ph-sub">${sel ? `${memberIds.length} devices${selDetail?.orgName ? ` in ${esc(selDetail.orgName)}` : ''}` : `on <a href="#/device/${p.target_id}/overview">${esc(p.device_label || `device ${p.target_id}`)}</a>`} · proposed by <strong>${esc(p.principal || 'unknown')}</strong> ${ago(p.created_at)}</div>
+        <h1 class="ph-title">${esc(health ? 'Set NinjaOne health status' : rb?.title ?? (rbRef ? rbRef.id : 'Custom PowerShell'))}</h1>
+        <div class="ph-sub">${sel ? `${memberIds.length} devices${selDetail?.orgName ? ` in ${esc(selDetail.orgName)}` : ''}` : `on ${targetLink}`} · proposed by <strong>${esc(p.principal || 'unknown')}</strong> ${ago(p.created_at)}</div>
       </div>
       <div class="ph-exp">${p.operation ? `<span class="badge ${STATUS_BADGE[p.operation.status] || 'badge-muted'}">dispatched · ${esc(p.operation.status)}</span>`
         : p.expired ? '<span class="badge badge-bad">expired</span>'
@@ -132,12 +138,20 @@ export async function planView(el) {
 
     <div class="plan-layout">
       <div class="plan-main">
-        <section class="hud-card glass">
+        ${health ? `<section class="hud-card glass">
+          <div class="hc-head"><h2 class="hc-title">${icon('pulse')} Exact change</h2><span class="hc-meta">one custom field · read back after writing</span></div>
+          <dl class="kv">
+            <dt>Field</dt><dd class="mono-val">${esc(health.field)}</dd>
+            <dt>New status</dt><dd><span class="badge ${health.status === 'HEALTHY' ? 'badge-ok' : health.status === 'UNHEALTHY' ? 'badge-bad' : health.status === 'NEEDS_ATTENTION' ? 'badge-warn' : 'badge-muted'}">${esc(health.status)}</span></dd>
+            <dt>Description</dt><dd>${esc(health.description || '—')}</dd>
+          </dl>
+          <div class="hc-note">This is exactly what is bound into the plan hash. Approving writes this value to NinjaOne — nothing runs on the endpoint.</div>
+        </section>` : `<section class="hud-card glass">
           <div class="hc-head"><h2 class="hc-title">${icon('terminal')} Exact script to execute</h2><span class="hc-meta">${lines.length} line${lines.length === 1 ? '' : 's'} · runs as SYSTEM</span>
             <button class="btn-mini" id="copy-script" style="margin-left:8px">Copy</button></div>
           <pre class="term code-lines">${lines.map((l, i) => `<span class="cl"><span class="ln">${i + 1}</span><span class="lc">${esc(l) || ' '}</span></span>`).join('')}</pre>
           <div class="hc-note">This is the complete text bound into the plan hash. Approving authorizes exactly this — a changed character means a new plan and a new approval.</div>
-        </section>
+        </section>`}
         ${p.args?.params && Object.keys(p.args.params).length ? `<section class="hud-card glass">
           <div class="hc-head"><h2 class="hc-title">${icon('layers')} Parameters</h2><span class="hc-meta">validated server-side, passed as data</span></div>
           <dl class="kv">${Object.entries(p.args.params).map(([k, v]) => `<dt class="mono-val">${esc(k)}</dt><dd>${esc(typeof v === 'object' ? JSON.stringify(v) : String(v))}</dd>`).join('')}</dl>
@@ -162,8 +176,9 @@ export async function planView(el) {
               <div><span class="ik">Affected scope</span><span>${esc(rb.affectedScope)}</span></div>
               <div><span class="ik">Side effects</span><span>${esc(rb.sideEffects)}</span></div>
               <div><span class="ik">Review</span><span>${rb.review ? `${esc(rb.review.status)} · ${esc(rb.review.reviewedBy)}` : '—'}</span></div>`
+              : health ? '<div class="sub">Writes one NinjaOne custom field value. No script runs and nothing changes on the endpoint; the previous value is overwritten.</div>'
               : '<div class="sub">Custom script — not a reviewed runbook. Read every line above; the command center cannot tell you whether it is safe.</div>'}
-            ${opensSession ? `<div class="session-warn">${icon('clock')}<span>Approving also opens a <strong>${Math.round(sp.ttlSeconds / 60)}-minute session</strong> on this device: up to <strong>${sp.maxCommands} more commands</strong> from your AI client can run there <em>without</em> another approval.</span></div>` : ''}
+            ${opensSession && !health ? `<div class="session-warn">${icon('clock')}<span>Approving also opens a <strong>${Math.round(sp.ttlSeconds / 60)}-minute session</strong> on this device: up to <strong>${sp.maxCommands} more commands</strong> from your AI client can run there <em>without</em> another approval.</span></div>` : ''}
           </div>
         </section>
 

@@ -29,6 +29,8 @@ MSPs and IT teams already have an agent on every machine. What they don't have i
 
 - **Talk to your fleet.** "Which DHCP scopes are almost full?" "Why is the reception PC offline?" "Inventory the GPOs on the domain and flag anything unlinked." The assistant answers from collected evidence — not guesses.
 - **Nothing runs without you.** Every endpoint action is an immutable, hashed plan that waits for a human. With a YubiKey, Windows Hello, or Bitwarden passkey enrolled, an AI holding every token on the box still cannot approve anything.
+- **Knows your playbook.** The assistant can read your NinjaOne knowledge base — your procedures and client notes, not generic advice.
+- **Findings show up where your techs work.** With your approval, Keyturn writes a NinjaOne Health Status field on the device or organization, then reads it back to confirm.
 - **Everything is remembered.** Findings, questions, answers, decisions, and receipts are durable. The next session — or the next AI — picks up where the last one left off.
 - **One pane per client, or all of them.** A global organization scope follows you across every page.
 - **Local by design.** No cloud service, no telemetry. Your RMM credentials never leave your machine.
@@ -120,6 +122,15 @@ npm run verify    # build + tests + PowerShell runner tests
 ```
 
 The UI is vanilla ES modules and CSS (oklch design tokens, View Transitions, container queries) — no framework and no build step. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## How does this compare to NinjaOne Katana?
+
+Katana is NinjaOne's built-in AI assistant (in early access). The two can work side by side; Keyturn is built around a few different choices:
+
+- **Bring your own AI.** Claude, Cursor, Codex, Devin, or any MCP client — you pick the model and can switch.
+- **Human-presence approval.** Every endpoint action is an immutable plan bound to a hash and approved with a passkey; "accepted" only counts once a receipt verifies it.
+- **Evidence you keep.** Collected infrastructure state, findings, decisions, and receipts live in a local store you own, across sessions and across AI clients.
+- **Open source and local.** MIT-licensed, runs on your machine, and the core is RMM-agnostic — NinjaOne is the first connector, not the only one.
 
 ## Roadmap
 

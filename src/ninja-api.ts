@@ -876,6 +876,31 @@ export class NinjaOneAPI {
     return this.makeRequest(`/v2/organization/${orgId}/custom-fields`, 'PATCH', fields);
   }
 
+  async getDeviceCustomFields(deviceId: number): Promise<any> {
+    return this.makeRequest(`/v2/device/${deviceId}/custom-fields`);
+  }
+
+  async getOrganizationCustomFields(orgId: number): Promise<any> {
+    return this.makeRequest(`/v2/organization/${orgId}/custom-fields`);
+  }
+
+  async getSystemCustomFields(): Promise<any> {
+    return this.makeRequest('/v2/system/custom-fields');
+  }
+
+  // Knowledge base (read-only)
+  async listOrganizationKbArticles(opts: { organizationIds?: string | undefined; articleName?: string | undefined; includeArchived?: boolean | undefined }): Promise<any> {
+    return this.makeRequest(`/v2/knowledgebase/organization/articles${this.buildQuery(opts)}`);
+  }
+
+  async listGlobalKbArticles(opts: { articleName?: string | undefined; includeArchived?: boolean | undefined }): Promise<any> {
+    return this.makeRequest(`/v2/knowledgebase/global/articles${this.buildQuery(opts)}`);
+  }
+
+  async getKbArticle(articleId: number, global = false): Promise<any> {
+    return this.makeRequest(`/v2/knowledgebase/${global ? 'global/' : ''}article/${articleId}`);
+  }
+
   // Ticketing
 
   async getTicketBoards(): Promise<any> {

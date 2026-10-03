@@ -45,10 +45,16 @@ export function planApprovalRequired(env: NodeJS.ProcessEnv = process.env): bool
   return v !== '0' && v !== 'false' && v !== 'no';
 }
 
-/** Only this operation is dispatchable in the M4 slice. */
+/** Operations the plan → approval → execute pipeline can dispatch. */
 export const OPERATION_REGISTRY = {
   run_device_powershell: { targetType: 'device', risk: 'low' },
+  // Writes one NinjaOne "Health Status" custom field on a device or org,
+  // then reads it back. Gated by policy.healthWritebackEnabled.
+  set_health_status: { targetType: 'device|organization', risk: 'low' },
 } as const;
+
+export const HEALTH_STATUSES = ['HEALTHY', 'NEEDS_ATTENTION', 'UNHEALTHY', 'UNKNOWN'] as const;
+const HEALTH_FIELD_RE = /^[A-Za-z][A-Za-z0-9_]{0,63}$/;
 
 export type OperationName = keyof typeof OPERATION_REGISTRY;
 
@@ -60,6 +66,7 @@ export interface OperationSecurity {
     allowedOrganizationIds?: number[];
     powershellSessionTtlSeconds?: number | undefined;
     powershellSessionMaxCommands?: number | undefined;
+    healthWritebackEnabled?: boolean | undefined;
   };
   principal?: { profile?: string; credentialKind?: string } | undefined;
 }
@@ -71,6 +78,11 @@ export interface OperationApi {
     body: { type?: string; id: number; runAs?: string; parameters?: string },
   ): Promise<any>;
   getDeviceActivities(id: number, pageSize?: number): Promise<any>;
+  // set_health_status only — optional so script-only callers stay valid.
+  updateDeviceCustomFields?(deviceId: number, fields: Record<string, unknown>): Promise<any>;
+  updateOrganizationCustomFields?(orgId: number, fields: Record<string, unknown>): Promise<any>;
+  getDeviceCustomFields?(deviceId: number): Promise<any>;
+  getOrganizationCustomFields?(orgId: number): Promise<any>;
 }
 
 function canonicalJson(value: unknown): string {
@@ -314,6 +326,7 @@ export class OperationService {
     canarySize?: number | undefined;
   }): Record<string, unknown> {
     this.requireSupported(input.operation);
+    if (input.operation === 'set_health_status') return this.createHealthPlan(input);
     const isBatch = typeof input.selectionId === 'string' && input.selectionId.length > 0;
     if (!isBatch && (input.targetType !== 'device' || !Number.isInteger(input.targetId))) {
       throw new OpError('invalid_params', 'plans support a device target or a selectionId');
@@ -409,6 +422,38 @@ export class OperationService {
    * WebAuthn-verified approvals may approve, dispatch, or back a session.
    * Old/unmigrated stores (no table) keep the legacy bearer behavior.
    */
+  /**
+   * set_health_status plan: one Health Status custom field on one device or
+   * organization. Field, status, and description are bound into the hash —
+   * approving authorizes exactly that value on exactly that target.
+   */
+  private createHealthPlan(input: { targetType: string; targetId: number; args: Record<string, unknown> }): Record<string, unknown> {
+    if (input.targetType !== 'device' && input.targetType !== 'organization') {
+      throw new OpError('invalid_params', 'set_health_status targets a device or an organization');
+    }
+    if (!Number.isInteger(input.targetId) || input.targetId <= 0) throw new OpError('invalid_params', 'targetId must be a positive integer');
+    const field = typeof input.args.field === 'string' ? input.args.field.trim() : '';
+    if (!HEALTH_FIELD_RE.test(field)) throw new OpError('invalid_params', 'field must be the custom field API name (letters, digits, underscore)');
+    const status = typeof input.args.status === 'string' ? input.args.status.trim().toUpperCase() : '';
+    if (!(HEALTH_STATUSES as readonly string[]).includes(status)) {
+      throw new OpError('invalid_params', `status must be one of ${HEALTH_STATUSES.join(', ')}`);
+    }
+    const description = typeof input.args.description === 'string' ? input.args.description.trim() : '';
+    if (description.length > 2000) throw new OpError('invalid_params', 'description is limited to 2000 characters');
+    const argsObj = { field, status, description };
+    const planHash = createHash('sha256')
+      .update(canonicalJson({ operation: 'set_health_status', targetType: input.targetType, targetId: input.targetId, args: argsObj, connectionId: this.store.connId }))
+      .digest('hex');
+    const id = randomUUID();
+    const now = Date.now();
+    const principal = this.security.principal?.profile ?? this.security.profile;
+    this.db
+      .prepare('INSERT INTO operation_plans (id, connection_id, operation, target_type, target_id, args_canonical, plan_hash, principal, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(id, this.store.connId, 'set_health_status', input.targetType, input.targetId, canonicalJson(argsObj), planHash, principal, now, now + PLAN_TTL_MS);
+    this.journalOp({ planId: id, status: 'ok', args: { planned: true, operation: 'set_health_status', field, status } });
+    return { id, operation: 'set_health_status', targetType: input.targetType, targetId: input.targetId, args: argsObj, planHash, expiresAt: now + PLAN_TTL_MS };
+  }
+
   passkeyEnforced(): boolean {
     try {
       return !!this.db.prepare('SELECT 1 FROM approver_credentials WHERE revoked_at IS NULL LIMIT 1').get();
@@ -448,13 +493,16 @@ export class OperationService {
    * The only write path on the UI surface: verify approval → fresh preflight →
    * persist intent (transaction) → dispatch upstream → record acceptance.
    */
-  async executeApproved(planId: string, approvalId: string): Promise<Record<string, unknown>> {
-    this.requireSupported('run_device_powershell');
+  /**
+   * Shared approval gate for every plan operation: command principal, live
+   * plan, approval bound to this plan's hash, passkey when enforced. Returns
+   * the existing operation for an idempotent retry instead of re-dispatching.
+   */
+  private checkApproval(planId: string, approvalId: string): {
+    plan: Record<string, unknown>; approval: Record<string, unknown>; dedupeKey: string; existing: Record<string, unknown> | null;
+  } {
     if (this.security.principal?.profile !== 'command') {
       throw new OpError('forbidden', 'Remote writes require the command profile principal');
-    }
-    if (!this.security.policy.deviceScriptsEnabled || !this.security.policy.powershellRunnerScriptId) {
-      throw new OpError('forbidden', 'PowerShell runner is not enabled in policy (deviceScriptsEnabled + powershellRunnerScriptId)');
     }
     const plan = this.db.prepare('SELECT * FROM operation_plans WHERE id = ?').get(planId) as Record<string, unknown> | undefined;
     if (!plan) throw new OpError('plan_not_found', `Plan ${planId} not found`);
@@ -467,13 +515,27 @@ export class OperationService {
     if (approval.method !== 'webauthn' && this.passkeyEnforced()) {
       throw new OpError('passkey_approval_required', 'This approval was not made with an approver passkey — re-approve with your security key or passkey');
     }
-
     // Dedup first: re-executing the same plan returns the existing operation
     // (idempotent UI retries), never a second dispatch.
     const dedupeKey = createHash('sha256').update(`${this.store.connId}:${planId}`).digest('hex');
     const existingOp = this.db.prepare('SELECT * FROM operations WHERE dedupe_key = ?').get(dedupeKey) as Record<string, unknown> | undefined;
-    if (existingOp) return this.getOperation(existingOp.id as string)!;
+    if (existingOp) return { plan, approval, dedupeKey, existing: this.getOperation(existingOp.id as string) };
     if (approval.consumed_by) throw new OpError('approval_consumed', 'Approval already consumed');
+    return { plan, approval, dedupeKey, existing: null };
+  }
+
+  async executeApproved(planId: string, approvalId: string): Promise<Record<string, unknown>> {
+    const kind = this.db.prepare('SELECT operation FROM operation_plans WHERE id = ?').get(planId) as { operation?: string } | undefined;
+    if (kind?.operation === 'set_health_status') return this.executeHealthStatus(planId, approvalId);
+    this.requireSupported('run_device_powershell');
+    if (this.security.principal?.profile !== 'command') {
+      throw new OpError('forbidden', 'Remote writes require the command profile principal');
+    }
+    if (!this.security.policy.deviceScriptsEnabled || !this.security.policy.powershellRunnerScriptId) {
+      throw new OpError('forbidden', 'PowerShell runner is not enabled in policy (deviceScriptsEnabled + powershellRunnerScriptId)');
+    }
+    const { plan, approval, dedupeKey, existing } = this.checkApproval(planId, approvalId);
+    if (existing) return existing;
 
     const canonicalArgs = JSON.parse(plan.args_canonical as string) as {
       command: string; timeoutSeconds: number;
@@ -557,6 +619,89 @@ export class OperationService {
       this.journalOp({ operationId: opId, planId, status: 'error', error: message });
       throw new OpError('dispatch_failed', `Dispatch failed (operation ${opId} persisted as failed): ${message}`);
     }
+    return this.getOperation(opId)!;
+  }
+
+  /**
+   * set_health_status: fresh org-boundary preflight → persist intent and
+   * consume the approval → one PATCH → read the field back. `verified` only
+   * when the read-back shows the approved status; otherwise `unknown`, with
+   * what NinjaOne actually stored, so a format mismatch is visible, not hidden.
+   */
+  private async executeHealthStatus(planId: string, approvalId: string): Promise<Record<string, unknown>> {
+    if (!this.security.policy.healthWritebackEnabled) {
+      throw new OpError('forbidden', 'Health write-back is not enabled in policy (healthWritebackEnabled)');
+    }
+    const { plan, dedupeKey, existing } = this.checkApproval(planId, approvalId);
+    if (existing) return existing;
+    const args = JSON.parse(plan.args_canonical as string) as { field: string; status: string; description: string };
+    const targetType = String(plan.target_type);
+    const targetId = Number(plan.target_id);
+    const onDevice = targetType === 'device';
+    const write = onDevice ? this.api.updateDeviceCustomFields : this.api.updateOrganizationCustomFields;
+    const read = onDevice ? this.api.getDeviceCustomFields : this.api.getOrganizationCustomFields;
+    if (!write || !read) throw new OpError('operation_not_supported', 'This API client cannot write custom fields');
+
+    // Fresh preflight: the org boundary is checked against live data.
+    let organizationId = targetId;
+    if (onDevice) {
+      const device = await this.api.getDevice(targetId);
+      if (!device) throw new OpError('target_not_found', `Target device ${targetId} not found upstream`);
+      organizationId = Number(device.organizationId);
+    }
+    const allowed = this.security.policy.allowedOrganizationIds;
+    if (allowed && allowed.length > 0 && !allowed.includes(organizationId)) {
+      throw new OpError('forbidden', `Target is in organization ${organizationId}, outside the allowed set`);
+    }
+
+    const opId = randomUUID();
+    const now = Date.now();
+    this.db.exec('BEGIN');
+    try {
+      this.db
+        .prepare(
+          `INSERT INTO operations (id, connection_id, plan_id, approval_id, dedupe_key, operation, target_type, target_id, status, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, 'set_health_status', ?, ?, 'dispatching', ?, ?)`,
+        )
+        .run(opId, this.store.connId, planId, approvalId, dedupeKey, targetType, targetId, now, now);
+      this.event(opId, 'preflight_ok', { organizationId, targetType });
+      this.event(opId, 'intent_persisted', { planId, approvalId, field: args.field, status: args.status });
+      const consumed = this.db
+        .prepare('UPDATE operation_approvals SET consumed_by = ? WHERE id = ? AND consumed_by IS NULL')
+        .run(opId, approvalId);
+      if (Number(consumed.changes) === 0) throw new Error('Approval already consumed');
+      this.db.exec('COMMIT');
+    } catch (error) {
+      this.db.exec('ROLLBACK');
+      throw error;
+    }
+
+    const requested = { status: args.status, description: args.description };
+    const finish = (status: string, result: Record<string, unknown>) =>
+      this.db.prepare('UPDATE operations SET status = ?, result_json = ?, updated_at = ? WHERE id = ?').run(status, JSON.stringify(result), Date.now(), opId);
+    try {
+      await write.call(this.api, targetId, { [args.field]: requested });
+      this.event(opId, 'write_accepted', { field: args.field });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      finish('failed', { field: args.field, requested, error: message });
+      this.event(opId, 'dispatch_failed', { error: message });
+      this.journalOp({ operationId: opId, planId, status: 'error', error: message });
+      throw new OpError('dispatch_failed', `Write failed (operation ${opId} persisted as failed): ${message}`);
+    }
+
+    let stored: unknown = null;
+    try {
+      const fields = await read.call(this.api, targetId);
+      stored = (fields && typeof fields === 'object' ? (fields as Record<string, unknown>)[args.field] : undefined) ?? null;
+    } catch (error) {
+      stored = { readError: error instanceof Error ? error.message : String(error) };
+    }
+    const storedStatus = typeof stored === 'string' ? stored : (stored as { status?: unknown } | null)?.status;
+    const matched = String(storedStatus ?? '').toUpperCase() === args.status;
+    finish(matched ? 'verified' : 'unknown', { field: args.field, requested, readBack: stored });
+    this.event(opId, matched ? 'verified' : 'readback_mismatch', { field: args.field, readBack: stored });
+    this.journalOp({ operationId: opId, planId, status: 'ok', args: { field: args.field, status: args.status, verified: matched } });
     return this.getOperation(opId)!;
   }
 
@@ -1037,6 +1182,8 @@ export class OperationService {
     const op = this.db.prepare('SELECT * FROM operations WHERE id = ?').get(operationId) as Record<string, unknown> | undefined;
     if (!op) return null;
     if (String(op.target_type) === 'selection') return this.reconcileBatch(operationId, op);
+    // Health writes complete synchronously; there is no runner activity to poll.
+    if (op.operation === 'set_health_status') return this.getOperation(operationId);
     if (op.status !== 'accepted' && op.status !== 'dispatching' && op.status !== 'cancel_requested') return this.getOperation(operationId);
     const runId = op.upstream_ref as string;
     const targetId = Number(op.target_id);
@@ -1193,6 +1340,7 @@ export class OperationService {
       device_label: p.target_type === 'device' ? (this.store.getDeviceById(Number(p.target_id))?.display_name ?? null) : null,
       expired: Number(p.expires_at) < Date.now(),
       approvals,
+      operation_name: p.operation,
       operation: op ?? null,
     };
   }

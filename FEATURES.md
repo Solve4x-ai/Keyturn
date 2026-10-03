@@ -13,6 +13,8 @@ This document tracks the implemented capabilities and security boundaries of Key
 - **Local browser dashboard** via a Fastify `serve` process bound to `127.0.0.1` with bearer-token auth (`npm run serve`; run one listener per profile on separate ports). This is the human approval, monitoring, infrastructure, review, and reporting surface — it is not an MCP transport. Open it at `http://localhost:<port>` (required for passkey approvals).
 - **Optional live inventory sync** — `NINJA_SYNC_INTERVAL_MINUTES=<n>` makes the serve process refresh organizations, devices, policies, and locations from NinjaOne every *n* minutes. Plain NinjaOne API reads (≈4–5 calls per sync at ~100 devices); **no AI/LLM tokens**, nothing runs on endpoints.
 - **Demo mode** — `npm run demo` runs the full UI against a fictional MSP (three organizations, ~85 devices) with no RMM account, fully sandboxed and read-only.
+- **Knowledge base access** — read-only tools to list and read NinjaOne knowledge base articles (client and global) and global custom fields, so answers follow the MSP's own procedures.
+- **Health write-back** — `set_health_status` plans write one NinjaOne Health Status custom field on a device or organization through the approval pipeline, then read it back (`verified` / `unknown`). Policy switch `healthWritebackEnabled`, off by default.
 - No MCP HTTP/SSE transport, Docker service, or hosted gateway — local by design
 
 ## Authentication and profile isolation

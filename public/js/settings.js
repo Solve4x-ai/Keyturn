@@ -31,6 +31,7 @@ const POLICY_FLAGS = [
   ['remoteControlEnabled', 'Remote control', 'remote-control sessions'],
   ['destructiveOperationsEnabled', 'Destructive operations', 'delete/remove actions'],
   ['reviewWritesEnabled', 'Review writes', 'Review Center answers/decisions (local)'],
+  ['healthWritebackEnabled', 'Health write-back', 'write NinjaOne Health Status fields (each one approved)'],
 ];
 
 async function sha256hex(text) {

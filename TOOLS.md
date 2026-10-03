@@ -182,6 +182,14 @@ These tools operate on the local per-tenant SQLite workspace
 | `query_scoped_custom_fields_detailed` | Detailed scoped custom fields | `df?`, `cursor?`, `pageSize?` |
 | `query_policy_overrides` | Policy overrides | `df?`, `cursor?`, `pageSize?` |
 | `query_backup_usage` | Backup usage statistics | `df?`, `cursor?`, `pageSize?` |
+| `get_system_custom_fields` | Global (system-level) custom field values | — |
+
+### Knowledge Base
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `list_kb_articles` | List/search knowledge base articles — client (`organization`, default) or MSP-wide (`global`) | `scope?`, `organizationId?`, `articleName?`, `includeArchived?` |
+| `get_kb_article` | Read one article by id; content over 60k chars is truncated | `articleId`, `global?` |
 
 ### Region Utilities
 
@@ -323,6 +331,7 @@ the browser UI approves. These tools return a stable envelope:
 | `get_selection` | both | Selection detail: count, member preview, exclusions+reasons, criteria, expiry | `selectionId` |
 | `list_selections` | both | Recent frozen selections for cross-session resume | `limit?` |
 | `create_plan` | command | Immutable plan — `deviceId` (single) or `selectionId`+`canarySize?` (batch); `runbookId`+`params` or custom `command`. Executes nothing. | `deviceId?`, `selectionId?`, `canarySize?`, `runbookId?`, `runbookVersion?`, `params?`, `command?`, `timeoutSeconds?` |
+| `propose_health_status` | command + `healthWritebackEnabled` | Plan to write one NinjaOne Health Status custom field (HEALTHY / NEEDS_ATTENTION / UNHEALTHY / UNKNOWN + description) on a device or org; read back after approval → `verified` or `unknown`. Field must exist in NinjaOne. Executes nothing. | `deviceId?` \| `organizationId?`, `field`, `status`, `description?` |
 | `dispatch_plan` | command | Dispatch an already-approved plan (approval comes from the UI) | `planId` |
 | `get_operation` | both | Operation status + receipt summary; `detail:"full"` adds bounded stdout/stderr; batch ops include target-count rollup | `operationId`, `detail?` |
 | `list_operations` | both | Recent operations, bounded rows + cursor for cross-session resume | `status?`, `since?`, `limit?`, `cursor?` |
