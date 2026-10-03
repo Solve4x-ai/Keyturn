@@ -58,6 +58,8 @@ every write) controls:
 - Per-category switches: ticket writes, device management, device scripts,
   administrative writes, software deployment, remote control, destructive
   operations, review writes.
+- `healthWritebackEnabled` — lets the AI *propose* writing NinjaOne Health
+  Status fields; each write is still a plan you approve.
 - `blockedActions` — explicit deny list that wins over any switch.
 - PowerShell session bounds (`powershellSessionTtlSeconds`,
   `powershellSessionMaxCommands`; `0` = every command needs its own approval).
@@ -74,6 +76,9 @@ hiding a tool is never the only control.
 | Organizations, devices, alerts, activities, inventory, policies, tickets | Read | Read | OAuth + profile isolation |
 | Pinned API endpoint discovery | Read | Read | Discovery only — no generic endpoint executor |
 | Paginated exports | Read | Read | Fixed export dir, limits, secret-field redaction |
+| Knowledge base articles, global custom fields | Read | Read | Read-only; long articles truncated |
+| Write a Health Status custom field (device / org) | Hidden | Plan-only | `healthWritebackEnabled` + plan → human approval → org-boundary preflight → read-back |
+| Global custom field writes, device geolocation history | — | — | Not exposed |
 | Create/update/comment on tickets | Hidden | Exposed | Org allowlist + policy flag + confirmation |
 | Reboot, maintenance mode, service control, alert reset | Hidden | Plan-only | Plan → human approval → preflight |
 | Run saved device scripts / approved PowerShell runner | Hidden | Plan-only | Plan → human approval → preflight; SYSTEM context; timeout |

@@ -6,10 +6,10 @@ cannot execute catalog entries.
 
 Pinned source:
 
-- URL: `https://app.ninjarmm.com/apidocs/NinjaRMM-API-v2.json`
+- URL: `https://us2.ninjarmm.com/apidocs/NinjaRMM-API-v2.json`
 - API version: `2.0.9-draft`
-- SHA-256: `753f26d4665028bf284975df632effa4fdd7318637a6270e020bfa8056b55c9d`
-- Retrieved: `2026-07-28`
+- SHA-256: `5932b93aea2a65bd6f3df734f80afdaaa0ac6ccf2672c67a25780eec22f79f0d`
+- Retrieved: `2026-10-03` (NinjaOne 15.1: +5 operations — knowledge base article reads, system custom fields, device geolocation history)
 
 Updates are intentionally manual. Download a candidate outside this directory,
 review the endpoint and method changes, then run

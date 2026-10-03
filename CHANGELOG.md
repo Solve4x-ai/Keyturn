@@ -6,6 +6,16 @@ All notable changes to Keyturn are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Knowledge base reads** — `list_kb_articles` and `get_kb_article` let your AI read your NinjaOne knowledge base (client and global articles); `get_system_custom_fields` reads global custom fields. Read-only, both profiles.
+- **Health write-back** — `propose_health_status` creates a plan to write a NinjaOne *Health Status* custom field on a device or organization (HEALTHY / NEEDS_ATTENTION / UNHEALTHY / UNKNOWN + description). It goes through the same approval pipeline as scripts and reads the field back afterwards: `verified` when NinjaOne shows the approved value, `unknown` (with what was stored) otherwise. Requires the new `healthWritebackEnabled` policy switch (off by default) and an existing Health Status field in NinjaOne.
+- Plan review, approvals, and the device drawer show the exact field change for health plans.
+
+### Changed
+
+- Pinned NinjaOne API spec refreshed for NinjaOne 15.1 (+5 operations). Global custom field writes and device geolocation history are deliberately not exposed.
+
 ## [1.5.0] — 2026-09-30 — first public release
 
 Keyturn began as a fork of

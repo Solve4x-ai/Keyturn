@@ -21,6 +21,11 @@ export interface LocalPolicy {
    * is read-only.
    */
   reviewWritesEnabled: boolean;
+  /**
+   * Explicit grant for set_health_status plans: Keyturn may write one
+   * NinjaOne Health Status custom field per approved plan. Default false.
+   */
+  healthWritebackEnabled: boolean;
   /** Chained PowerShell session bounds; omitted → built-in defaults apply. */
   powershellSessionTtlSeconds?: number | undefined;
   powershellSessionMaxCommands?: number | undefined;
@@ -70,6 +75,7 @@ const SAFE_DEFAULT_POLICY: LocalPolicy = {
   remoteControlEnabled: false,
   destructiveOperationsEnabled: false,
   reviewWritesEnabled: false,
+  healthWritebackEnabled: false,
 };
 
 export const REPORTING_READ_TOOLS = new Set([
@@ -176,6 +182,19 @@ export const REPORTING_READ_TOOLS = new Set([
   'list_review_questions',
   'list_org_annotations',
 ]);
+
+/** Knowledge base and global custom fields — read-only, both profiles. */
+export const KNOWLEDGE_READ_TOOLS = new Set([
+  'list_kb_articles',
+  'get_kb_article',
+  'get_system_custom_fields',
+]);
+
+/**
+ * Proposes a set_health_status plan. Command profile only, and only when the
+ * policy grants healthWritebackEnabled; the write itself still needs approval.
+ */
+export const HEALTH_PLAN_TOOLS = new Set(['propose_health_status']);
 
 export const COMMAND_READ_TOOLS = new Set([
   'get_device_scripting_options',
@@ -327,6 +346,8 @@ export const REVIEW_WRITE_TOOLS = new Set([
 
 const COMMAND_KNOWN_TOOLS = new Set([
   ...REPORTING_READ_TOOLS,
+  ...KNOWLEDGE_READ_TOOLS,
+  ...HEALTH_PLAN_TOOLS,
   ...COMMAND_READ_TOOLS,
   ...WRITE_TOOLS,
   ...OPERATION_PLAN_TOOLS,
@@ -394,6 +415,7 @@ export function parsePolicy(raw: unknown): LocalPolicy {
     reviewWritesEnabled: parseBoolean(value.reviewWritesEnabled, false),
     remoteControlEnabled: parseBoolean(value.remoteControlEnabled, false),
     destructiveOperationsEnabled: parseBoolean(value.destructiveOperationsEnabled, false),
+    healthWritebackEnabled: parseBoolean(value.healthWritebackEnabled, false),
     powershellSessionTtlSeconds:
       typeof value.powershellSessionTtlSeconds === 'number' && value.powershellSessionTtlSeconds > 0
         ? value.powershellSessionTtlSeconds
@@ -440,7 +462,7 @@ export function isToolAllowed(name: string, security: RuntimeSecurity): boolean 
     // Local review-record writes are the only non-read surface reporting
     // may reach, and only under the explicit policy grant.
     if (REVIEW_WRITE_TOOLS.has(name)) return security.policy.reviewWritesEnabled;
-    return REPORTING_READ_TOOLS.has(name);
+    return REPORTING_READ_TOOLS.has(name) || KNOWLEDGE_READ_TOOLS.has(name);
   }
   if (!COMMAND_KNOWN_TOOLS.has(name)) return false;
   if (REVIEW_WRITE_TOOLS.has(name) && !security.policy.reviewWritesEnabled) return false;
@@ -452,6 +474,7 @@ export function isToolAllowed(name: string, security: RuntimeSecurity): boolean 
   if (DEVICE_SCRIPT_TOOLS.has(name) && !security.policy.deviceScriptsEnabled) return false;
   if (SOFTWARE_DEPLOYMENT_TOOLS.has(name) && !security.policy.softwareDeploymentEnabled) return false;
   if (REMOTE_CONTROL_TOOLS.has(name) && !security.policy.remoteControlEnabled) return false;
+  if (HEALTH_PLAN_TOOLS.has(name) && !security.policy.healthWritebackEnabled) return false;
   return true;
 }
 

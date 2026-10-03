@@ -22,5 +22,6 @@
   "softwareDeploymentEnabled": false,
   "remoteControlEnabled": false,
   "destructiveOperationsEnabled": false,
-  "reviewWritesEnabled": false
+  "reviewWritesEnabled": false,
+  "healthWritebackEnabled": false
 }

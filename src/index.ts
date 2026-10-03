@@ -1749,6 +1749,51 @@ const TOOLS = [
     }
   },
   {
+    name: 'list_kb_articles',
+    description: 'List or search NinjaOne knowledge base articles — the MSP\'s own procedures and client documentation. Use before answering "how do we…" questions, then read one with get_kb_article. Read-only.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        scope: { type: 'string', enum: ['organization', 'global'], description: 'organization (client articles, default) or global (MSP-wide)' },
+        organizationId: { type: 'number', description: 'Organization scope only: limit to one organization' },
+        articleName: { type: 'string', description: 'Filter by article name' },
+        includeArchived: { type: 'boolean', description: 'Include archived articles (default false)' }
+      }
+    }
+  },
+  {
+    name: 'get_kb_article',
+    description: 'Read one NinjaOne knowledge base article by id (from list_kb_articles). Read-only; very long content is truncated.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        articleId: { type: 'number', description: 'Article id' },
+        global: { type: 'boolean', description: 'True for a global (MSP-wide) article' }
+      },
+      required: ['articleId']
+    }
+  },
+  {
+    name: 'get_system_custom_fields',
+    description: 'Read global (system-level) custom field values. Read-only.',
+    inputSchema: { type: 'object', properties: {} }
+  },
+  {
+    name: 'propose_health_status',
+    description: 'Propose writing a NinjaOne Health Status custom field on a device or organization, so technicians see a Keyturn finding inside NinjaOne. Creates an immutable plan for human approval — nothing is written until approved. The field must already exist in NinjaOne as a Health Status custom field with API write access.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        deviceId: { type: 'number', description: 'Target device id (or use organizationId)' },
+        organizationId: { type: 'number', description: 'Target organization id (or use deviceId)' },
+        field: { type: 'string', description: 'Custom field API name, e.g. keyturnHealth' },
+        status: { type: 'string', enum: ['HEALTHY', 'NEEDS_ATTENTION', 'UNHEALTHY', 'UNKNOWN'] },
+        description: { type: 'string', description: 'Short explanation shown with the status (max 2000 chars)' }
+      },
+      required: ['field', 'status']
+    }
+  },
+  {
     name: 'dispatch_plan',
     description: 'Dispatch an already-approved plan. The trusted approval happens in the command-center UI — this submits the work bound to that approval. Without a live approval returns approval_required.',
     inputSchema: {
@@ -3451,6 +3496,54 @@ export class NinjaOneMCPServer {
               summary: hasSelection
                 ? `Batch plan created for ${plan.targetCount} frozen device(s) — nothing executed. Human approval required.`
                 : `Plan created — nothing executed. Human approval required.`,
+              nextAction: 'Have a human approve at reviewUrl, then call dispatch_plan',
+            });
+          } catch (e) {
+            return this.contractError(e);
+          }
+        }
+        case 'list_kb_articles': {
+          const opts = { articleName: args.articleName, includeArchived: args.includeArchived };
+          return this.result(
+            args.scope === 'global'
+              ? await this.api.listGlobalKbArticles(opts)
+              : await this.api.listOrganizationKbArticles({ ...opts, organizationIds: args.organizationId === undefined ? undefined : String(args.organizationId) }),
+          );
+        }
+        case 'get_kb_article': {
+          const article = await this.api.getKbArticle(Number(args.articleId), args.global === true);
+          // Keep very large articles from flooding the model context.
+          const LIMIT = 60_000;
+          for (const key of ['html', 'text'] as const) {
+            const v = article?.content?.[key];
+            if (typeof v === 'string' && v.length > LIMIT) article.content[key] = `${v.slice(0, LIMIT)}\n…[truncated ${v.length - LIMIT} chars]`;
+          }
+          return this.result(article);
+        }
+        case 'get_system_custom_fields':
+          return this.result(await this.api.getSystemCustomFields());
+        case 'propose_health_status': {
+          try {
+            const onDevice = args.deviceId !== undefined;
+            if (onDevice === (args.organizationId !== undefined)) {
+              return this.contract({ ok: false, code: 'invalid_params', message: 'Give exactly one of deviceId or organizationId' });
+            }
+            const ops = new OperationService(this.requireStore(), this.api, this.security);
+            const plan = ops.createPlan({
+              operation: 'set_health_status',
+              targetType: onDevice ? 'device' : 'organization',
+              targetId: Number(onDevice ? args.deviceId : args.organizationId),
+              args: { field: args.field, status: args.status, description: args.description },
+            });
+            return this.contract({
+              ok: true,
+              planId: plan.id,
+              planHash: plan.planHash,
+              expiresAt: plan.expiresAt,
+              target: { type: plan.targetType, id: plan.targetId },
+              change: plan.args,
+              reviewUrl: this.reviewUrl(String(plan.id)),
+              summary: 'Health status plan created — nothing written. Human approval required.',
               nextAction: 'Have a human approve at reviewUrl, then call dispatch_plan',
             });
           } catch (e) {

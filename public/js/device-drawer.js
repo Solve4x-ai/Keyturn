@@ -173,8 +173,9 @@ export async function openDeviceDrawer(id, opts = {}) {
             <div class="evidence-item">
               <div class="sub">from ${esc(p.principal || 'unknown')} · expires ${fmtTs(p.expires_at)}</div>
               <dl class="kv" style="margin:8px 0">
-                <dt>command</dt><dd><pre class="term">${esc(p.args?.command ?? '')}</pre></dd>
-                <dt>timeout</dt><dd>${esc(p.args?.timeoutSeconds ?? 120)}s</dd>
+                ${p.operation === 'set_health_status'
+                  ? `<dt>health</dt><dd class="mono-val">${esc(p.args?.field)} → ${esc(p.args?.status)}</dd><dt>note</dt><dd>${esc(p.args?.description || '—')}</dd>`
+                  : `<dt>command</dt><dd><pre class="term">${esc(p.args?.command ?? '')}</pre></dd><dt>timeout</dt><dd>${esc(p.args?.timeoutSeconds ?? 120)}s</dd>`}
                 <dt>hash</dt><dd class="sub">${esc(String(p.plan_hash || '').slice(0, 24))}…</dd>
               </dl>
               <button class="btn" data-approve-plan="${p.id}">Approve &amp; execute</button>
